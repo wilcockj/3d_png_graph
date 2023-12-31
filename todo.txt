@@ -16,3 +16,5 @@ maybe add an outline for a borderlands style shader
 show the picture in the top left
 
 label and draw the axes/bounds
+
+add drag and drop feature for image loading
