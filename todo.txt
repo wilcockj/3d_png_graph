@@ -1,2 +1,6 @@
-find unique colors for no multi-render of cubes
-use shader in some way to change color of cube based on position
+find unique colors first for no multi-render of cubes
+  could do this by using hashmap and then going through
+  and counting unique
+
+change shader to flat shading, don't worry about lighting
+maybe add an outline for a borderlands style shader
