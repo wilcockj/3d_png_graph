@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
   Mesh my_pyr = GenMeshPoly(4, 1);
   Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Mesh my_small_cube = GenMeshCube(0.05f, 0.05f, 0.05f);
+  Mesh my_small_cube = GenMeshCube(0.1f, 0.1f, 0.1f);
   Material matIntances = LoadMaterialDefault();
   Matrix *transforms = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
   Material matDefault = LoadMaterialDefault();
@@ -85,10 +85,10 @@ int main(int argc, char *argv[]) {
     UpdateCamera(&camera, CAMERA_ORBITAL);
 
     // Update the light shader with the camera view position
-    float cameraPos[3] = {camera.position.x, camera.position.y,
-                          camera.position.z};
-    SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos,
-                   SHADER_UNIFORM_VEC3);
+    // float cameraPos[3] = {camera.position.x, camera.position.y,
+    //                      camera.position.z};
+    // SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos,
+    //              SHADER_UNIFORM_VEC3);
 
     // Draw
     //----------------------------------------------------------------------------------

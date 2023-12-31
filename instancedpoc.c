@@ -20,7 +20,7 @@ int main(void) {
   printf("intializing\n");
 
   printf("Loading image\n");
-  Image image = LoadImage("ginch.png"); // Replace with your image path
+  Image image = LoadImage("oceansmall.png"); // Replace with your image path
   // Initialization
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
   color_list = malloc(image.height * image.width * sizeof(Color));
@@ -69,7 +69,7 @@ int main(void) {
 
     // Start Drawing
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(BLACK);
     BeginMode3D(camera);
 
     for (int i = 0; i < color_cnt; i++) {
