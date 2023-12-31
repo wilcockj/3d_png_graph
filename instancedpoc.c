@@ -16,7 +16,12 @@ bool color_in_list(Color cur_color) {
                        (cur_color.b / 255.0f) * (256 * 256);
   unsigned int byte_index = index / (8);
   unsigned int cur_bitfield = drawn_pixel_map[byte_index];
-  return cur_bitfield >> (index - (byte_index * 8));
+  bool present = (cur_bitfield >> (index - (byte_index * 8))) & 0x1;
+  if (!present) {
+    // need to set in pixel map
+    drawn_pixel_map[byte_index] |= 1 << (index - (byte_index * 8));
+  }
+  return present;
 }
 int main(int argc, char *argv[]) {
   printf("intializing\n");
