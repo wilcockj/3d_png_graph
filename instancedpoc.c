@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#define MAX_SAMPLES 100000
+#define MAX_COLORS 10000
 
 uint8_t *drawn_pixel_map;
 Color *color_list;
@@ -15,19 +18,19 @@ bool color_in_list(Color cur_color) {
   unsigned int cur_bitfield = drawn_pixel_map[byte_index];
   return cur_bitfield >> (index - (byte_index * 8));
 }
-
-int main(void) {
+int main(int argc, char *argv[]) {
   printf("intializing\n");
+  srand(time(NULL));
 
   printf("Loading image\n");
-  Image image = LoadImage("oceansmall.png"); // Replace with your image path
+  Image image = LoadImage(argv[1]); // Replace with your image path
   // Initialization
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
   color_list = malloc(image.height * image.width * sizeof(Color));
   cubePosition = malloc(image.height * image.width * sizeof(Vector3));
 
-  const int screenWidth = 800;
-  const int screenHeight = 450;
+  const int screenWidth = 1920;
+  const int screenHeight = 1080;
   const float scale = 0.01f; // Scale factor for the 3D space
   const float graph_limit = 2;
   printf("intialized\n");
@@ -47,18 +50,20 @@ int main(void) {
   printf("making color list\n");
 
   int color_cnt = 0;
-  printf("populating color list\n");
-  for (int y = 0; y < image.height; y++) {
-    for (int x = 0; x < image.width; x++) {
-      Color color = GetImageColor(image, x, y);
-      if (!color_in_list(color)) {
-        color_list[color_cnt] = color;
-        Vector3 pos;
-        pos.x = (float)color.r / 255.0f * graph_limit;
-        pos.y = (float)color.g / 255.0f * graph_limit;
-        pos.z = (float)color.b / 255.0f * graph_limit;
-        cubePosition[color_cnt++] = pos;
-      }
+  printf("randomly populating color list\n");
+  for (int i = 0; i < MAX_SAMPLES; i++) {
+    if (color_cnt > MAX_COLORS) {
+      break;
+    }
+    Vector2 coord = {rand() % image.width, rand() % image.height};
+    Color color = GetImageColor(image, coord.x, coord.y);
+    if (!color_in_list(color)) {
+      color_list[color_cnt] = color;
+      Vector3 pos;
+      pos.x = (float)color.r / 255.0f * graph_limit;
+      pos.y = (float)color.g / 255.0f * graph_limit;
+      pos.z = (float)color.b / 255.0f * graph_limit;
+      cubePosition[color_cnt++] = pos;
     }
   }
   printf("Found %d unique colors\n", color_cnt);
