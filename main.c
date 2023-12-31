@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
   Mesh my_pyr = GenMeshPoly(4, 1);
   Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Mesh my_small_cube = GenMeshCube(0.01f, 0.01f, 0.01f);
+  Mesh my_small_cube = GenMeshCube(0.05f, 0.05f, 0.05f);
   Material matIntances = LoadMaterialDefault();
   Matrix *transforms = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
   Material matDefault = LoadMaterialDefault();
@@ -65,9 +65,9 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < num_pixels; i++) {
     Color cur_color = target_colors[i];
     Vector3 pos;
-    pos.x = (double)cur_color.r / 255 * 10;
-    pos.y = (double)cur_color.g / 255 * 10;
-    pos.z = (double)cur_color.b / 255 * 10;
+    pos.x = (double)cur_color.r / 255 * 5;
+    pos.y = (double)cur_color.g / 255 * 5;
+    pos.z = (double)cur_color.b / 255 * 5;
     //    printf("%f,%f,%f\n", pos.x, pos.y, pos.z);
     Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
     Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});

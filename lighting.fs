@@ -34,9 +34,8 @@ uniform vec3 viewPos;
 
 void main()
 {
-    vec3 transformedPosition = vec3(vec4(fragPosition, 1.0));
     // Color interpolation based on position
-    vec3 colorFactor = clamp(transformedPosition / vec3(10.0, 10.0, 10.0), 0.0, 1.0);
+    vec3 colorFactor = clamp(fragPosition / vec3(5.0, 5.0, 5.0), 0.0, 1.0);
 
     vec4 texelColor = vec4(colorFactor, 1.0);
     // Texel color fetching from texture sampler
