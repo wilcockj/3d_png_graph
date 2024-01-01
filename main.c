@@ -87,8 +87,8 @@ int main(int argc, char *argv[]) {
   Material matDefault = LoadMaterialDefault();
 
   // Load lighting shader
-  Shader shader =
-      LoadShader("resources/lighting_instancing.vs", "resources/lighting.fs");
+  Shader shader = LoadShader("resources/lighting_instancing_100.vs",
+                             "resources/lighting_100.fs");
 
   // Get shader locations
   shader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(shader, "mvp");
@@ -131,9 +131,7 @@ int main(int argc, char *argv[]) {
     pos.x = ((double)cur_color.r / 255) * 5;
     pos.y = ((double)cur_color.g / 255) * 5;
     pos.z = ((double)cur_color.b / 255) * 5;
-    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
-    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
-    Matrix rotation = MatrixRotate(axis, 0);
+
     transforms[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
 
@@ -143,9 +141,7 @@ int main(int argc, char *argv[]) {
     pos.x = ((double)cur_color.r / 255) * -5;
     pos.y = ((double)cur_color.g / 255) * 5;
     pos.z = ((double)cur_color.b / 255) * -5;
-    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
-    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
-    Matrix rotation = MatrixRotate(axis, 0);
+
     transforms2[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
 
@@ -155,9 +151,7 @@ int main(int argc, char *argv[]) {
     pos.x = ((double)cur_color.r / 255) * 5;
     pos.y = ((double)cur_color.g / 255) * 5;
     pos.z = ((double)cur_color.b / 255) * -5;
-    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
-    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
-    Matrix rotation = MatrixRotate(axis, 0);
+
     transforms3[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
 
@@ -167,9 +161,7 @@ int main(int argc, char *argv[]) {
     pos.x = ((double)cur_color.r / 255) * -5;
     pos.y = ((double)cur_color.g / 255) * 5;
     pos.z = ((double)cur_color.b / 255) * 5;
-    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
-    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
-    Matrix rotation = MatrixRotate(axis, 0);
+
     transforms4[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
   //--------------------------------------------------------------------------------------
@@ -180,12 +172,6 @@ int main(int argc, char *argv[]) {
     // Update
     //----------------------------------------------------------------------------------
     UpdateCamera(&camera, CAMERA_ORBITAL);
-
-    // Update the light shader with the camera view position
-    // float cameraPos[3] = {camera.position.x, camera.position.y,
-    //                      camera.position.z};
-    // SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos,
-    //              SHADER_UNIFORM_VEC3);
 
     // Draw
     //----------------------------------------------------------------------------------
@@ -228,6 +214,15 @@ int main(int argc, char *argv[]) {
     // 0,
     //            WHITE);
     EndDrawing();
+    if (IsFileDropped()) {
+      FilePathList files = LoadDroppedFiles();
+      for (int i = 0; i < files.count; i++) {
+        printf("got file dropped %s\n", files.paths[i]);
+        // after this can load the file into texture
+        // and sample the image
+      }
+      UnloadDroppedFiles(files);
+    }
     //----------------------------------------------------------------------------------
   }
   UnloadImageColors(target_colors);
