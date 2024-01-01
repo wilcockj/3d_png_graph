@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX_SAMPLES 100000
 #define MAX_COLORS 50000
@@ -237,10 +238,13 @@ int main(int argc, char *argv[]) {
         // and sample the image
         free(info.transform_list);
         free(info.color_list);
+        memset(drawn_pixel_map, 0, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
         UnloadImage(target_image);
         UnloadTexture(target_image_tex);
+        target_image = LoadImage(files.paths[i]);
+        target_image_tex = LoadTextureFromImage(target_image);
 
-        process_image(target_image);
+        info = process_image(target_image);
       }
       UnloadDroppedFiles(files);
     }
