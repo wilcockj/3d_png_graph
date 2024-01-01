@@ -60,6 +60,10 @@ int main(int argc, char *argv[]) {
 
   if (argc > 1) {
     const char *filename = argv[1];
+    if (!FileExists(filename)) {
+      printf("file %s does not exist\n", filename);
+      exit(1);
+    }
     target_image = LoadImage(filename);
   } else {
     // if no file is provided use default image
