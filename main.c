@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     Rectangle dest;
     float screen_ratio = (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH;
     if (height_greater) {
-      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200 / screen_ratio, 200};
+      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200 * screen_ratio, 200};
     } else {
       dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200 * screen_ratio};
     }
