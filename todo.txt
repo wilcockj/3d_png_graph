@@ -21,3 +21,7 @@ web doesnt like it
 may be easiest to just use GLSL 100 
 
 drag and drop multiple images for other quadrants
+
+drag to spin controls, zoom in with mouse wheel
+
+make them glow
