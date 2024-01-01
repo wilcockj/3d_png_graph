@@ -14,9 +14,16 @@
 #define SCREEN_HEIGHT 600
 
 uint8_t *drawn_pixel_map;
-uint8_t *drawn_pixel_map2;
-Color *color_list;
 Vector3 *cubePosition;
+
+struct image_info {
+  size_t color_cnt;
+  size_t num_pixels;
+  Image *target_image;
+  Texture2D *target_texture;
+  Matrix **transform_list;
+  Color *color_list;
+};
 
 bool color_in_list(Color cur_color) {
   // use cur color to see what to check
@@ -32,7 +39,7 @@ bool color_in_list(Color cur_color) {
   return present;
 }
 
-int populate_color_list(Image target_image) {
+int populate_color_list(Image target_image, Color *color_list) {
   int color_cnt = 0;
   for (int i = 0; i < MAX_SAMPLES; i++) {
     if (color_cnt > MAX_COLORS) {
@@ -45,6 +52,46 @@ int populate_color_list(Image target_image) {
     }
   }
   return color_cnt;
+}
+
+void load_transforms_from_color_list(Matrix *transform_list, Color *color_list,
+                                     int color_cnt, unsigned int quadrant) {
+  Vector3 quadrant_lookup[4] = {(Vector3){5, 5, 5}, (Vector3){-5, 5, -5},
+                                (Vector3){5, 5, -5}, (Vector3){-5, 5, 5}};
+  for (int i = 0; i < color_cnt; i++) {
+    Color cur_color = color_list[i];
+    Vector3 pos;
+    pos.x = ((double)cur_color.r / 255) * quadrant_lookup[quadrant].x;
+    pos.y = ((double)cur_color.g / 255) * quadrant_lookup[quadrant].y;
+    pos.z = ((double)cur_color.b / 255) * quadrant_lookup[quadrant].z;
+
+    transform_list[i] = MatrixTranslate(pos.x, pos.y, pos.z);
+  }
+}
+
+struct image_info process_image(Image target_image) {
+
+  struct image_info info;
+  info.num_pixels = target_image.width * target_image.height;
+  info.color_list = malloc(info.num_pixels * sizeof(Color));
+
+  info.color_cnt = populate_color_list(target_image, info.color_list);
+
+  printf("found %d unique colors\n", info.color_cnt);
+
+  info.transform_list = malloc(4 * sizeof(Matrix));
+  for (int i = 0; i < 4; i++) {
+    info.transform_list[i] = malloc(sizeof(Matrix) * info.color_cnt);
+  }
+  load_transforms_from_color_list(info.transform_list[0], info.color_list,
+                                  info.color_cnt, 0);
+  load_transforms_from_color_list(info.transform_list[1], info.color_list,
+                                  info.color_cnt, 1);
+  load_transforms_from_color_list(info.transform_list[2], info.color_list,
+                                  info.color_cnt, 2);
+  load_transforms_from_color_list(info.transform_list[3], info.color_list,
+                                  info.color_cnt, 3);
+  return info;
 }
 
 int main(int argc, char *argv[]) {
@@ -71,12 +118,13 @@ int main(int argc, char *argv[]) {
   }
 
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
-  color_list = malloc(target_image.height * target_image.width * sizeof(Color));
 
   InitWindow(scr_width, scr_height,
              "raylib [models] example - model animation");
   SetTargetFPS(60);
+
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
+
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
   camera.target = (Vector3){0.0f, 0.0f, 0.0f};      // Camera looking at point
@@ -90,8 +138,6 @@ int main(int argc, char *argv[]) {
   // maybe instead need to find the unique pixels?
   // to reduce number needed
   //
-  int num_pixels = target_image.width * target_image.height;
-  printf("There are %d pixels\n", num_pixels);
 
   Mesh my_pyr = GenMeshPoly(4, 1);
   Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
@@ -99,10 +145,7 @@ int main(int argc, char *argv[]) {
       CUBE_SIDE_LEN, 4,
       8); // GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
   Material matIntances = LoadMaterialDefault();
-  Matrix *transforms = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
-  Matrix *transforms2 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
-  Matrix *transforms3 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
-  Matrix *transforms4 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
+
   Material matDefault = LoadMaterialDefault();
 
   // Load lighting shader
@@ -130,50 +173,8 @@ int main(int argc, char *argv[]) {
   matInstances.maps[MATERIAL_MAP_DIFFUSE].color = RED;
   printf("making color list\n");
 
-  printf("randomly populating color list\n");
-  int color_cnt = populate_color_list(target_image);
+  struct image_info info = process_image(target_image);
 
-  printf("found %d unique colors\n", color_cnt);
-
-  for (int i = 0; i < color_cnt; i++) {
-    Color cur_color = color_list[i];
-    Vector3 pos;
-    pos.x = ((double)cur_color.r / 255) * 5;
-    pos.y = ((double)cur_color.g / 255) * 5;
-    pos.z = ((double)cur_color.b / 255) * 5;
-
-    transforms[i] = MatrixTranslate(pos.x, pos.y, pos.z);
-  }
-
-  for (int i = 0; i < color_cnt; i++) {
-    Color cur_color = color_list[i];
-    Vector3 pos;
-    pos.x = ((double)cur_color.r / 255) * -5;
-    pos.y = ((double)cur_color.g / 255) * 5;
-    pos.z = ((double)cur_color.b / 255) * -5;
-
-    transforms2[i] = MatrixTranslate(pos.x, pos.y, pos.z);
-  }
-
-  for (int i = 0; i < color_cnt; i++) {
-    Color cur_color = color_list[i];
-    Vector3 pos;
-    pos.x = ((double)cur_color.r / 255) * 5;
-    pos.y = ((double)cur_color.g / 255) * 5;
-    pos.z = ((double)cur_color.b / 255) * -5;
-
-    transforms3[i] = MatrixTranslate(pos.x, pos.y, pos.z);
-  }
-
-  for (int i = 0; i < color_cnt; i++) {
-    Color cur_color = color_list[i];
-    Vector3 pos;
-    pos.x = ((double)cur_color.r / 255) * -5;
-    pos.y = ((double)cur_color.g / 255) * 5;
-    pos.z = ((double)cur_color.b / 255) * 5;
-
-    transforms4[i] = MatrixTranslate(pos.x, pos.y, pos.z);
-  }
   //--------------------------------------------------------------------------------------
 
   // Main game loop
@@ -195,10 +196,14 @@ int main(int argc, char *argv[]) {
     DrawCylinderEx((Vector3){-5, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
     DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 5, 0}, .1, .1, 12, GREEN);
     DrawCylinderEx((Vector3){0, 0, -5}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
-    DrawMeshInstanced(my_small_sphere, matInstances, transforms, color_cnt);
-    DrawMeshInstanced(my_small_sphere, matInstances, transforms2, color_cnt);
-    DrawMeshInstanced(my_small_sphere, matInstances, transforms3, color_cnt);
-    DrawMeshInstanced(my_small_sphere, matInstances, transforms4, color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[0],
+                      info.color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[1],
+                      info.color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[2],
+                      info.color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[3],
+                      info.color_cnt);
 
     EndMode3D();
 
@@ -230,6 +235,12 @@ int main(int argc, char *argv[]) {
         printf("got file dropped %s\n", files.paths[i]);
         // after this can load the file into texture
         // and sample the image
+        free(info.transform_list);
+        free(info.color_list);
+        UnloadImage(target_image);
+        UnloadTexture(target_image_tex);
+
+        process_image(target_image);
       }
       UnloadDroppedFiles(files);
     }
