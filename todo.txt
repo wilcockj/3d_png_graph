@@ -4,24 +4,16 @@ find unique colors first for no multi-render of cubes
 
 add outline shader to better see dark colors on background
 
-show the picture in the top left
-
-label and draw the axes/bounds
-
-add drag and drop feature for image loading
-
-add web build to share easily and figure out file loading for that,
 drag and drop on desktop and file selection on mobile
-
-may need to change shader for web build?
 
 maybe add if def for web build to add in time null randomness
 web doesnt like it
 
-may be easiest to just use GLSL 100 
-
-drag and drop multiple images for other quadrants
-
 drag to spin controls, zoom in with mouse wheel
 
 make them glow
+
+add jpg support
+
+better message box on fail, raygui good option here
+also need some way to select file on mobile
