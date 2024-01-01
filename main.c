@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #define MAX_SAMPLES 1000000
 #define MAX_COLORS 50000
@@ -33,13 +32,18 @@ int main(int argc, char *argv[]) {
   // goal is to load image
   // and graph the color of each pixel
   // on 3d graph
-  const char *filename = argv[1];
   const int scr_width = 800;
   const int scr_height = 600;
   const float circle_radius = 0.1;
   const float graph_limit = 5;
-  srand(time(NULL));
-  Image target_image = LoadImage(filename);
+  srand(1);
+  Image target_image;
+  if (argc > 1) {
+    const char *filename = argv[1];
+    target_image = LoadImage(filename);
+  } else {
+    target_image = LoadImage("resources/oceansmall.png");
+  }
 
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
   color_list = malloc(target_image.height * target_image.width * sizeof(Color));
