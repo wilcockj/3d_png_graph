@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   camera.projection = CAMERA_PERSPECTIVE; // Camera mode type
 
   Vector3 center = {0, 0, 0};
-  SetTargetFPS(60); // Set our game to run at 60 frames-per-second
+
   Image target_image = LoadImage(filename);
   Color *target_colors = LoadImageColors(target_image);
   // maybe instead need to find the unique pixels?
@@ -99,6 +99,9 @@ int main(int argc, char *argv[]) {
     BeginMode3D(camera);
 
     DrawGrid(10, 1.0f); // Draw a grid
+    DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
+    DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 5, 0}, .1, .1, 12, GREEN);
+    DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
     DrawMeshInstanced(my_small_cube, matInstances, transforms, num_pixels);
 
     EndMode3D();
