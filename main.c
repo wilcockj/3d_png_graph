@@ -72,7 +72,8 @@ int main(int argc, char *argv[]) {
   Material matDefault = LoadMaterialDefault();
 
   // Load lighting shader
-  Shader shader = LoadShader("lighting_instancing.vs", "lighting.fs");
+  Shader shader =
+      LoadShader("resources/lighting_instancing.vs", "resources/lighting.fs");
 
   // Get shader locations
   shader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(shader, "mvp");
