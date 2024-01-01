@@ -236,6 +236,14 @@ int main(int argc, char *argv[]) {
         printf("got file dropped %s\n", files.paths[i]);
         // after this can load the file into texture
         // and sample the image
+        Image test_load = LoadImage(files.paths[i]);
+        Texture2D test_texture = LoadTextureFromImage(test_load);
+        printf("texture id = %d\n", test_texture.id);
+        if (test_texture.id == 0) {
+          // invalid texture
+          printf("Error unable to load %s\n", files.paths[i]);
+          break;
+        }
         free(info.transform_list);
         free(info.color_list);
         memset(drawn_pixel_map, 0, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
