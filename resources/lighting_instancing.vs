@@ -30,6 +30,6 @@ void main()
 
     mat4 matModeli = matModel * instanceTransform;
     vec4 fragWorldPosition = instanceTransform * vec4(vertexPosition,1.0);
-    vec3 colorFactor = clamp((fragWorldPosition.xyz) / vec3(5.0, 5.0, 5.0), 0.0, 1.0);
+    vec3 colorFactor = clamp(abs(fragWorldPosition.xyz) / vec3(5.0, 5.0, 5.0), 0.0, 1.0);
     fragColor = vec4(colorFactor,1.0);
 }

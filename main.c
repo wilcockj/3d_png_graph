@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
 
   InitWindow(scr_width, scr_height,
              "raylib [models] example - model animation");
+  SetTargetFPS(60);
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
@@ -166,8 +167,24 @@ int main(int argc, char *argv[]) {
     DrawFPS(10, 10);
 
     // TODO: need to scale image to be in reasonable range
-    // DrawTexture(target_image_tex, SCREEN_WIDTH - target_image_tex.width, 0,
-    //           WHITE);
+    // 200x200 area
+
+    Rectangle src =
+        (Rectangle){0, 0, target_image_tex.width, target_image_tex.height};
+
+    bool height_greater = target_image_tex.width < target_image_tex.height;
+    Rectangle dest;
+    float screen_ratio = (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH;
+    if (height_greater) {
+      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200 / screen_ratio, 200};
+    } else {
+      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200 * screen_ratio};
+    }
+
+    DrawTexturePro(target_image_tex, src, dest, (Vector2){0, 0}, 0, WHITE);
+    // DrawTexture(target_image_tex, SCREEN_WIDTH - target_image_tex.width,
+    // 0,
+    //            WHITE);
     EndDrawing();
     //----------------------------------------------------------------------------------
   }

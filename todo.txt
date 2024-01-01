@@ -19,3 +19,5 @@ maybe add if def for web build to add in time null randomness
 web doesnt like it
 
 may be easiest to just use GLSL 100 
+
+drag and drop multiple images for other quadrants
