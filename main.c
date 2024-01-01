@@ -14,6 +14,7 @@
 #define SCREEN_HEIGHT 600
 
 uint8_t *drawn_pixel_map;
+uint8_t *drawn_pixel_map2;
 Color *color_list;
 Vector3 *cubePosition;
 
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   InitWindow(scr_width, scr_height,
              "raylib [models] example - model animation");
-  SetTargetFPS(60);
+  SetTargetFPS(20);
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
@@ -80,6 +81,9 @@ int main(int argc, char *argv[]) {
       8); // GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
   Material matIntances = LoadMaterialDefault();
   Matrix *transforms = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
+  Matrix *transforms2 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
+  Matrix *transforms3 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
+  Matrix *transforms4 = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
   Material matDefault = LoadMaterialDefault();
 
   // Load lighting shader
@@ -133,6 +137,41 @@ int main(int argc, char *argv[]) {
     transforms[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
 
+  for (int i = 0; i < color_cnt; i++) {
+    Color cur_color = color_list[i];
+    Vector3 pos;
+    pos.x = ((double)cur_color.r / 255) * -5;
+    pos.y = ((double)cur_color.g / 255) * 5;
+    pos.z = ((double)cur_color.b / 255) * -5;
+    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
+    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
+    Matrix rotation = MatrixRotate(axis, 0);
+    transforms2[i] = MatrixTranslate(pos.x, pos.y, pos.z);
+  }
+
+  for (int i = 0; i < color_cnt; i++) {
+    Color cur_color = color_list[i];
+    Vector3 pos;
+    pos.x = ((double)cur_color.r / 255) * 5;
+    pos.y = ((double)cur_color.g / 255) * 5;
+    pos.z = ((double)cur_color.b / 255) * -5;
+    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
+    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
+    Matrix rotation = MatrixRotate(axis, 0);
+    transforms3[i] = MatrixTranslate(pos.x, pos.y, pos.z);
+  }
+
+  for (int i = 0; i < color_cnt; i++) {
+    Color cur_color = color_list[i];
+    Vector3 pos;
+    pos.x = ((double)cur_color.r / 255) * -5;
+    pos.y = ((double)cur_color.g / 255) * 5;
+    pos.z = ((double)cur_color.b / 255) * 5;
+    Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
+    Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
+    Matrix rotation = MatrixRotate(axis, 0);
+    transforms4[i] = MatrixTranslate(pos.x, pos.y, pos.z);
+  }
   //--------------------------------------------------------------------------------------
 
   // Main game loop
@@ -157,10 +196,13 @@ int main(int argc, char *argv[]) {
     BeginMode3D(camera);
 
     DrawGrid(10, 1.0f); // Draw a grid
-    DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
+    DrawCylinderEx((Vector3){-5, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
     DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 5, 0}, .1, .1, 12, GREEN);
-    DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
+    DrawCylinderEx((Vector3){0, 0, -5}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
     DrawMeshInstanced(my_small_cube, matInstances, transforms, color_cnt);
+    DrawMeshInstanced(my_small_cube, matInstances, transforms2, color_cnt);
+    DrawMeshInstanced(my_small_cube, matInstances, transforms3, color_cnt);
+    DrawMeshInstanced(my_small_cube, matInstances, transforms4, color_cnt);
 
     EndMode3D();
 
