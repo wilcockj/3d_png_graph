@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define MAX_SAMPLES 1000000
 #define MAX_COLORS 50000
@@ -37,6 +38,7 @@ int main(int argc, char *argv[]) {
   const int scr_height = 600;
   const float circle_radius = 0.1;
   const float graph_limit = 5;
+  srand(time(NULL));
   Image target_image = LoadImage(filename);
 
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
@@ -62,7 +64,9 @@ int main(int argc, char *argv[]) {
 
   Mesh my_pyr = GenMeshPoly(4, 1);
   Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Mesh my_small_cube = GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
+  Mesh my_small_cube = GenMeshSphere(
+      CUBE_SIDE_LEN, 4,
+      8); // GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
   Material matIntances = LoadMaterialDefault();
   Matrix *transforms = (Matrix *)RL_CALLOC(num_pixels, sizeof(Matrix));
   Material matDefault = LoadMaterialDefault();
@@ -106,11 +110,11 @@ int main(int argc, char *argv[]) {
   printf("found %d unique colors\n", color_cnt);
 
   for (int i = 0; i < color_cnt; i++) {
-    Color cur_color = target_colors[i];
+    Color cur_color = color_list[i];
     Vector3 pos;
-    pos.x = (double)cur_color.r / 255 * 5;
-    pos.y = (double)cur_color.g / 255 * 5;
-    pos.z = (double)cur_color.b / 255 * 5;
+    pos.x = ((double)cur_color.r / 255) * 5;
+    pos.y = ((double)cur_color.g / 255) * 5;
+    pos.z = ((double)cur_color.b / 255) * 5;
     Matrix translation = MatrixTranslate(pos.x, pos.y, pos.z);
     Vector3 axis = Vector3Normalize((Vector3){0, 0, 0});
     Matrix rotation = MatrixRotate(axis, 0);
@@ -136,7 +140,7 @@ int main(int argc, char *argv[]) {
     //----------------------------------------------------------------------------------
     BeginDrawing();
 
-    ClearBackground(RAYWHITE);
+    ClearBackground(BLACK);
 
     BeginMode3D(camera);
 
