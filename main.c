@@ -10,6 +10,9 @@
 #define MAX_COLORS 50000
 #define CUBE_SIDE_LEN 0.05f
 
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
 uint8_t *drawn_pixel_map;
 Color *color_list;
 Vector3 *cubePosition;
@@ -32,16 +35,18 @@ int main(int argc, char *argv[]) {
   // goal is to load image
   // and graph the color of each pixel
   // on 3d graph
-  const int scr_width = 800;
-  const int scr_height = 600;
+  const int scr_width = SCREEN_WIDTH;
+  const int scr_height = SCREEN_HEIGHT;
   const float circle_radius = 0.1;
   const float graph_limit = 5;
   srand(1);
   Image target_image;
+
   if (argc > 1) {
     const char *filename = argv[1];
     target_image = LoadImage(filename);
   } else {
+    // if no file is provided use default image
     target_image = LoadImage("resources/oceansmall.png");
   }
 
@@ -50,6 +55,7 @@ int main(int argc, char *argv[]) {
 
   InitWindow(scr_width, scr_height,
              "raylib [models] example - model animation");
+  Texture2D target_image_tex = LoadTextureFromImage(target_image);
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
   camera.target = (Vector3){0.0f, 0.0f, 0.0f};      // Camera looking at point
@@ -159,6 +165,9 @@ int main(int argc, char *argv[]) {
 
     DrawFPS(10, 10);
 
+    // TODO: need to scale image to be in reasonable range
+    // DrawTexture(target_image_tex, SCREEN_WIDTH - target_image_tex.width, 0,
+    //           WHITE);
     EndDrawing();
     //----------------------------------------------------------------------------------
   }
