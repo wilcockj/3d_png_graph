@@ -12,3 +12,8 @@ add drag and drop feature for image loading
 
 add web build to share easily and figure out file loading for that,
 drag and drop on desktop and file selection on mobile
+
+may need to change shader for web build?
+
+maybe add if def for web build to add in time null randomness
+web doesnt like it
