@@ -2,19 +2,13 @@ find unique colors first for no multi-render of cubes
   could do this by using hashmap and then going through
   and counting unique
 
-randomly sample image to get max amount of colors
-
 add outline shader to better see dark colors on background
 
-if going instanced route need to find how to get the global
-position into the shader
-
-
-change shader to flat shading, don't worry about lighting
-maybe add an outline for a borderlands style shader
-  
 show the picture in the top left
 
 label and draw the axes/bounds
 
 add drag and drop feature for image loading
+
+add web build to share easily and figure out file loading for that,
+drag and drop on desktop and file selection on mobile
