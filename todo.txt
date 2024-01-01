@@ -17,3 +17,5 @@ add jpg support
 
 better message box on fail, raygui good option here
 also need some way to select file on mobile
+
+refactor into different files
