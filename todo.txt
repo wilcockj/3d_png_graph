@@ -17,3 +17,5 @@ may need to change shader for web build?
 
 maybe add if def for web build to add in time null randomness
 web doesnt like it
+
+may be easiest to just use GLSL 100 
