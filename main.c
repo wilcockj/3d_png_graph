@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   InitWindow(scr_width, scr_height,
              "raylib [models] example - model animation");
-  SetTargetFPS(20);
+  SetTargetFPS(60);
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
