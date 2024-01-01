@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_SAMPLES 1000000
+#define MAX_SAMPLES 100000
 #define MAX_COLORS 50000
 #define CUBE_SIDE_LEN 0.05f
 
@@ -30,6 +30,21 @@ bool color_in_list(Color cur_color) {
     drawn_pixel_map[byte_index] |= 1 << (index - (byte_index * 8));
   }
   return present;
+}
+
+int populate_color_list(Image target_image) {
+  int color_cnt = 0;
+  for (int i = 0; i < MAX_SAMPLES; i++) {
+    if (color_cnt > MAX_COLORS) {
+      break;
+    }
+    Vector2 coord = {rand() % target_image.width, rand() % target_image.height};
+    Color color = GetImageColor(target_image, coord.x, coord.y);
+    if (!color_in_list(color)) {
+      color_list[color_cnt++] = color;
+    }
+  }
+  return color_cnt;
 }
 
 int main(int argc, char *argv[]) {
@@ -68,15 +83,15 @@ int main(int argc, char *argv[]) {
 
   Vector3 center = {0, 0, 0};
 
-  Color *target_colors = LoadImageColors(target_image);
   // maybe instead need to find the unique pixels?
   // to reduce number needed
+  //
   int num_pixels = target_image.width * target_image.height;
   printf("There are %d pixels\n", num_pixels);
 
   Mesh my_pyr = GenMeshPoly(4, 1);
   Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Mesh my_small_cube = GenMeshSphere(
+  Mesh my_small_sphere = GenMeshSphere(
       CUBE_SIDE_LEN, 4,
       8); // GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
   Material matIntances = LoadMaterialDefault();
@@ -111,18 +126,9 @@ int main(int argc, char *argv[]) {
   matInstances.maps[MATERIAL_MAP_DIFFUSE].color = RED;
   printf("making color list\n");
 
-  int color_cnt = 0;
   printf("randomly populating color list\n");
-  for (int i = 0; i < MAX_SAMPLES; i++) {
-    if (color_cnt > MAX_COLORS) {
-      break;
-    }
-    Vector2 coord = {rand() % target_image.width, rand() % target_image.height};
-    Color color = GetImageColor(target_image, coord.x, coord.y);
-    if (!color_in_list(color)) {
-      color_list[color_cnt++] = color;
-    }
-  }
+  int color_cnt = populate_color_list(target_image);
+
   printf("found %d unique colors\n", color_cnt);
 
   for (int i = 0; i < color_cnt; i++) {
@@ -185,10 +191,10 @@ int main(int argc, char *argv[]) {
     DrawCylinderEx((Vector3){-5, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
     DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 5, 0}, .1, .1, 12, GREEN);
     DrawCylinderEx((Vector3){0, 0, -5}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
-    DrawMeshInstanced(my_small_cube, matInstances, transforms, color_cnt);
-    DrawMeshInstanced(my_small_cube, matInstances, transforms2, color_cnt);
-    DrawMeshInstanced(my_small_cube, matInstances, transforms3, color_cnt);
-    DrawMeshInstanced(my_small_cube, matInstances, transforms4, color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, transforms, color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, transforms2, color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, transforms3, color_cnt);
+    DrawMeshInstanced(my_small_sphere, matInstances, transforms4, color_cnt);
 
     EndMode3D();
 
@@ -225,6 +231,5 @@ int main(int argc, char *argv[]) {
     }
     //----------------------------------------------------------------------------------
   }
-  UnloadImageColors(target_colors);
   return EXIT_SUCCESS;
 }
