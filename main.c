@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
   }
 
   InitWindow(scr_width, scr_height, "image color grapher");
-  SetTargetFPS(120);
+  SetTargetFPS(60);
 
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
 
