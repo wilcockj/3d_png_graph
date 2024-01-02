@@ -214,6 +214,7 @@ int main(int argc, char *argv[]) {
 
     Draw_Image_In_Region(target_image_tex,
                          (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200});
+    DrawText("Drag and Drop Image", 0, SCREEN_HEIGHT - 20, 20, WHITE);
     EndDrawing();
 
     // handle file dropping
