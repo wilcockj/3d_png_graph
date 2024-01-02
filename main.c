@@ -120,8 +120,7 @@ int main(int argc, char *argv[]) {
 
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
 
-  InitWindow(scr_width, scr_height,
-             "raylib [models] example - model animation");
+  InitWindow(scr_width, scr_height, "image color grapher");
   SetTargetFPS(60);
 
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
