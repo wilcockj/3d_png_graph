@@ -13,9 +13,13 @@ drag to spin controls, zoom in with mouse wheel
 
 make them glow
 
-add jpg support
+add jpg support need to recompile raylib twice, once for desktop
+and then for web
 
 better message box on fail, raygui good option here
 also need some way to select file on mobile
 
 refactor into different files
+
+add better scripts for cross comp to windows and maybe android if i feel like into
+either mingw for windows or zig ?
