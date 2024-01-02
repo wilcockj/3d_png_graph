@@ -1,3 +1,4 @@
+#include "colorutil.h"
 #include <raylib.h>
 #include <raymath.h>
 #include <stdint.h>
@@ -11,18 +12,6 @@
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
-
-uint8_t *drawn_pixel_map;
-Vector3 *cubePosition;
-
-struct image_info {
-  size_t color_cnt;
-  size_t num_pixels;
-  Image *target_image;
-  Texture2D *target_texture;
-  Matrix **transform_list;
-  Color *color_list;
-};
 
 void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
   Rectangle src = (Rectangle){0, 0, tex.width, tex.height};
@@ -45,7 +34,7 @@ void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
   DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0, WHITE);
 }
 
-bool color_in_list(Color cur_color) {
+bool color_in_list(Color cur_color, uint8_t *drawn_pixel_map) {
   // use cur color to see what to check
   unsigned int index = (cur_color.r / 255.0f) + (cur_color.g / 255.0f) * (256) +
                        (cur_color.b / 255.0f) * (256 * 256);
@@ -59,7 +48,8 @@ bool color_in_list(Color cur_color) {
   return present;
 }
 
-int populate_color_list(Image target_image, Color *color_list) {
+int populate_color_list(Image target_image, Color *color_list,
+                        uint8_t *drawn_pixel_map) {
   int color_cnt = 0;
   for (int i = 0; i < MAX_SAMPLES; i++) {
     if (color_cnt > MAX_COLORS) {
@@ -67,7 +57,7 @@ int populate_color_list(Image target_image, Color *color_list) {
     }
     Vector2 coord = {rand() % target_image.width, rand() % target_image.height};
     Color color = GetImageColor(target_image, coord.x, coord.y);
-    if (!color_in_list(color)) {
+    if (!color_in_list(color, drawn_pixel_map)) {
       color_list[color_cnt++] = color;
     }
   }
@@ -92,10 +82,12 @@ void load_transforms_from_color_list(Matrix *transform_list, Color *color_list,
 struct image_info process_image(Image target_image) {
 
   struct image_info info;
+  info.drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info.num_pixels = target_image.width * target_image.height;
   info.color_list = malloc(info.num_pixels * sizeof(Color));
 
-  info.color_cnt = populate_color_list(target_image, info.color_list);
+  info.color_cnt =
+      populate_color_list(target_image, info.color_list, info.drawn_pixel_map);
 
   printf("found %d unique colors\n", info.color_cnt);
 
@@ -134,8 +126,6 @@ int main(int argc, char *argv[]) {
     // if no file is provided use default image
     target_image = LoadImage("resources/oceansmall.png");
   }
-
-  drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
 
   InitWindow(scr_width, scr_height, "image color grapher");
   SetTargetFPS(120);
@@ -241,9 +231,10 @@ int main(int argc, char *argv[]) {
           printf("Error unable to load %s\n", files.paths[i]);
           break;
         }
+        // TODO: add free command
         free(info.transform_list);
         free(info.color_list);
-        memset(drawn_pixel_map, 0, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
+        free(info.drawn_pixel_map);
         UnloadImage(target_image);
         UnloadTexture(target_image_tex);
         target_image = LoadImage(files.paths[i]);
