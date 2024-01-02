@@ -1,7 +1,5 @@
 #include <raylib.h>
 #include <raymath.h>
-#define RLIGHTS_IMPLEMENTATION
-#include "rlights.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +23,27 @@ struct image_info {
   Matrix **transform_list;
   Color *color_list;
 };
+
+void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
+  Rectangle src = (Rectangle){0, 0, tex.width, tex.height};
+
+  bool height_greater = tex.width < tex.height;
+  Rectangle dest;
+  float image_ratio = (float)tex.height / (float)tex.width;
+
+  // TODO: this is messed for vertical images
+  // also add define for the region to display images
+  // in
+  if (height_greater) {
+    size_t new_width = region.width / image_ratio;
+    dest = (Rectangle){(region.x + region.width - new_width), region.y,
+                       new_width, region.height};
+  } else {
+    dest = (Rectangle){region.x, 0, region.width, region.height * image_ratio};
+  }
+
+  DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0, WHITE);
+}
 
 bool color_in_list(Color cur_color) {
   // use cur color to see what to check
@@ -84,14 +103,12 @@ struct image_info process_image(Image target_image) {
   for (int i = 0; i < 4; i++) {
     info.transform_list[i] = malloc(sizeof(Matrix) * info.color_cnt);
   }
-  load_transforms_from_color_list(info.transform_list[0], info.color_list,
-                                  info.color_cnt, 0);
-  load_transforms_from_color_list(info.transform_list[1], info.color_list,
-                                  info.color_cnt, 1);
-  load_transforms_from_color_list(info.transform_list[2], info.color_list,
-                                  info.color_cnt, 2);
-  load_transforms_from_color_list(info.transform_list[3], info.color_list,
-                                  info.color_cnt, 3);
+
+  for (int i = 0; i < 4; i++) {
+    load_transforms_from_color_list(info.transform_list[i], info.color_list,
+                                    info.color_cnt, i);
+  }
+
   return info;
 }
 
@@ -121,7 +138,7 @@ int main(int argc, char *argv[]) {
   drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
 
   InitWindow(scr_width, scr_height, "image color grapher");
-  SetTargetFPS(60);
+  SetTargetFPS(120);
 
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
 
@@ -163,14 +180,8 @@ int main(int argc, char *argv[]) {
   SetShaderValue(shader, ambientLoc, (float[4]){0.2f, 0.2f, 0.2f, 1.0f},
                  SHADER_UNIFORM_VEC4);
 
-  // Create one light
-  CreateLight(LIGHT_DIRECTIONAL, (Vector3){50.0f, 50.0f, 0.0f}, Vector3Zero(),
-              WHITE, shader);
-  matDefault.maps[MATERIAL_MAP_DIFFUSE].color = BLUE;
-
   Material matInstances = LoadMaterialDefault();
   matInstances.shader = shader;
-  matInstances.maps[MATERIAL_MAP_DIFFUSE].color = RED;
   printf("making color list\n");
 
   struct image_info info = process_image(target_image);
@@ -196,6 +207,8 @@ int main(int argc, char *argv[]) {
     DrawCylinderEx((Vector3){-5, 0, 0}, (Vector3){5, 0, 0}, .1, .1, 12, RED);
     DrawCylinderEx((Vector3){0, 0, 0}, (Vector3){0, 5, 0}, .1, .1, 12, GREEN);
     DrawCylinderEx((Vector3){0, 0, -5}, (Vector3){0, 0, 5}, .1, .1, 12, BLUE);
+
+    // draw all quadrants
     DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[0],
                       info.color_cnt);
     DrawMeshInstanced(my_small_sphere, matInstances, info.transform_list[1],
@@ -209,26 +222,11 @@ int main(int argc, char *argv[]) {
 
     DrawFPS(10, 10);
 
-    // TODO: need to scale image to be in reasonable range
-    // 200x200 area
-
-    Rectangle src =
-        (Rectangle){0, 0, target_image_tex.width, target_image_tex.height};
-
-    bool height_greater = target_image_tex.width < target_image_tex.height;
-    Rectangle dest;
-    float screen_ratio = (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH;
-    if (height_greater) {
-      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200 * screen_ratio, 200};
-    } else {
-      dest = (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200 * screen_ratio};
-    }
-
-    DrawTexturePro(target_image_tex, src, dest, (Vector2){0, 0}, 0, WHITE);
-    // DrawTexture(target_image_tex, SCREEN_WIDTH - target_image_tex.width,
-    // 0,
-    //            WHITE);
+    Draw_Image_In_Region(target_image_tex,
+                         (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200});
     EndDrawing();
+
+    // handle file dropping
     if (IsFileDropped()) {
       FilePathList files = LoadDroppedFiles();
       for (int i = 0; i < files.count; i++) {
@@ -252,7 +250,9 @@ int main(int argc, char *argv[]) {
         target_image_tex = LoadTextureFromImage(target_image);
 
         info = process_image(target_image);
+        break;
       }
+      // tells the engine we handled the files
       UnloadDroppedFiles(files);
     }
     //----------------------------------------------------------------------------------
