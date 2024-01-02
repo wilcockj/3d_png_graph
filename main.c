@@ -82,7 +82,7 @@ void load_transforms_from_color_list(Matrix *transform_list, Color *color_list,
 struct image_info process_image(Image target_image) {
 
   struct image_info info;
-  info.drawn_pixel_map = malloc((256 * 256 * 256) / (8 * sizeof(uint8_t)));
+  info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info.num_pixels = target_image.width * target_image.height;
   info.color_list = malloc(info.num_pixels * sizeof(Color));
 
@@ -237,8 +237,8 @@ int main(int argc, char *argv[]) {
         free(info.drawn_pixel_map);
         UnloadImage(target_image);
         UnloadTexture(target_image_tex);
-        target_image = LoadImage(files.paths[i]);
-        target_image_tex = LoadTextureFromImage(target_image);
+        target_image = test_load;
+        target_image_tex = test_texture;
 
         info = process_image(target_image);
         break;
