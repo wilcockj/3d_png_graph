@@ -233,6 +233,9 @@ int main(int argc, char *argv[]) {
           break;
         }
         // TODO: add free command
+        for (int i = 0; i < 4; i++) {
+          free(info.transform_list[i]);
+        }
         free(info.transform_list);
         free(info.color_list);
         free(info.drawn_pixel_map);
