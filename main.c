@@ -6,12 +6,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT 24
+#define GUI_WINDOW_FILE_DIALOG_IMPLEMENTATION
+#include "gui_window_file_dialog.h"
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+
 #define MAX_SAMPLES 100000
-#define MAX_COLORS 50000
+#define MAX_COLORS 40000
 #define CUBE_SIDE_LEN 0.05f
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
+
+void GotFileFromEmscripten(char *filename) {
+  printf("got file %s\n", filename);
+}
 
 void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
   Rectangle src = (Rectangle){0, 0, tex.width, tex.height};
@@ -84,7 +95,7 @@ struct image_info process_image(Image target_image) {
   struct image_info info;
   info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info.num_pixels = target_image.width * target_image.height;
-  info.color_list = malloc(info.num_pixels * sizeof(Color));
+  info.color_list = malloc(MAX_COLORS * sizeof(Color));
 
   info.color_cnt =
       populate_color_list(target_image, info.color_list, info.drawn_pixel_map);
@@ -128,7 +139,7 @@ int main(int argc, char *argv[]) {
   }
 
   InitWindow(scr_width, scr_height, "image color grapher");
-  SetTargetFPS(60);
+  SetTargetFPS(120);
 
   Texture2D target_image_tex = LoadTextureFromImage(target_image);
 
@@ -178,9 +189,37 @@ int main(int argc, char *argv[]) {
 
   //--------------------------------------------------------------------------------------
 
+  // Custom file dialog
+  GuiWindowFileDialogState fileDialogState =
+      InitGuiWindowFileDialog(GetWorkingDirectory());
+
+  bool exitWindow = false;
+
+  char fileNameToLoad[512] = {0};
+
+  Texture texture = {0};
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
+
+    // Check for file selected
+    if (fileDialogState.SelectFilePressed) {
+      // Load image file (if supported extension)
+      if (IsFileExtension(fileDialogState.fileNameText, ".png")) {
+        strcpy(fileNameToLoad,
+               TextFormat("%s" PATH_SEPERATOR "%s", fileDialogState.dirPathText,
+                          fileDialogState.fileNameText));
+        UnloadTexture(texture);
+        texture = LoadTexture(fileNameToLoad);
+        Image loaded_image = LoadImageFromTexture(texture);
+        info = process_image(loaded_image);
+        target_image = loaded_image;
+        target_image_tex = texture;
+      }
+
+      fileDialogState.SelectFilePressed = false;
+    }
+
     // Update
     //----------------------------------------------------------------------------------
     UpdateCamera(&camera, CAMERA_ORBITAL);
@@ -215,6 +254,31 @@ int main(int argc, char *argv[]) {
     Draw_Image_In_Region(target_image_tex,
                          (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200});
     DrawText("Drag and Drop Image", 0, SCREEN_HEIGHT - 20, 20, WHITE);
+
+    char *version_string = "v0.1";
+    int version_len = MeasureText(version_string, 20);
+    int version_padding = 10;
+    DrawText(version_string, SCREEN_WIDTH - version_len - version_padding,
+             SCREEN_HEIGHT - 20, 20, WHITE);
+
+    // raygui: controls drawing
+    //----------------------------------------------------------------------------------
+    if (fileDialogState.windowActive)
+      GuiLock();
+
+    if (GuiButton((Rectangle){0, 50, 140, 30},
+                  GuiIconText(ICON_FILE_OPEN, "Open Image")))
+      fileDialogState.windowActive = true;
+
+    GuiUnlock();
+
+    // GUI: Dialog Window
+    //--------------------------------------------------------------------------------
+    GuiWindowFileDialog(&fileDialogState);
+    //--------------------------------------------------------------------------------
+
+    //----------------------------------------------------------------------------------
+
     EndDrawing();
 
     // handle file dropping
@@ -250,6 +314,7 @@ int main(int argc, char *argv[]) {
       // tells the engine we handled the files
       UnloadDroppedFiles(files);
     }
+
     //----------------------------------------------------------------------------------
   }
   return EXIT_SUCCESS;

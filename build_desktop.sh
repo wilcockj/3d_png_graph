@@ -1,1 +1,1 @@
-gcc main.c -g3 -lraylib
+gcc main.c -g3 -lraylib -lm
