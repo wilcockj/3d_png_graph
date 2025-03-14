@@ -6,13 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT 24
-#define GUI_WINDOW_FILE_DIALOG_IMPLEMENTATION
-#include "gui_window_file_dialog.h"
-
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
-
 #define MAX_SAMPLES 100000
 #define MAX_COLORS 40000
 #define CUBE_SIDE_LEN 0.05f
@@ -205,30 +198,10 @@ int main(int argc, char *argv[]) {
   //--------------------------------------------------------------------------------------
 
   // Custom file dialog
-  GuiWindowFileDialogState fileDialogState =
-      InitGuiWindowFileDialog(GetWorkingDirectory());
-
-  bool exitWindow = false;
-
-  char fileNameToLoad[512] = {0};
 
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
-
-    // Check for file selected
-    if (fileDialogState.SelectFilePressed) {
-      // Load image file (if supported extension)
-      if (IsFileExtension(fileDialogState.fileNameText, ".png")) {
-        strcpy(fileNameToLoad,
-               TextFormat("%s" PATH_SEPERATOR "%s", fileDialogState.dirPathText,
-                          fileDialogState.fileNameText));
-
-        UpdateTexturesFromFilename(fileNameToLoad);
-      }
-
-      fileDialogState.SelectFilePressed = false;
-    }
 
     // Update
     //----------------------------------------------------------------------------------
@@ -272,19 +245,6 @@ int main(int argc, char *argv[]) {
              SCREEN_HEIGHT - 20, 20, WHITE);
 
     // raygui: controls drawing
-    //----------------------------------------------------------------------------------
-    if (fileDialogState.windowActive)
-      GuiLock();
-
-    if (GuiButton((Rectangle){0, 50, 140, 30},
-                  GuiIconText(ICON_FILE_OPEN, "Open Image")))
-      fileDialogState.windowActive = true;
-
-    GuiUnlock();
-
-    // GUI: Dialog Window
-    //--------------------------------------------------------------------------------
-    GuiWindowFileDialog(&fileDialogState);
     //--------------------------------------------------------------------------------
 
     //----------------------------------------------------------------------------------
