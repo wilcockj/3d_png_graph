@@ -20,8 +20,24 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+Image target_image;
+Texture2D target_image_tex;
+struct image_info info;
+
+void UpdateTexturesFromFilename(char *filename) {
+  UnloadTexture(target_image_tex);
+  UnloadImage(target_image);
+  Texture texture = LoadTexture(filename);
+  Image loaded_image = LoadImageFromTexture(texture);
+  info = process_image(loaded_image);
+  target_image = loaded_image;
+  target_image_tex = texture;
+}
+
 void GotFileFromEmscripten(char *filename) {
   printf("got file %s\n", filename);
+
+  UpdateTexturesFromFilename(filename);
 }
 
 void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
@@ -124,7 +140,6 @@ int main(int argc, char *argv[]) {
   const float circle_radius = 0.1;
   const float graph_limit = 5;
   srand(1);
-  Image target_image;
 
   if (argc > 1) {
     const char *filename = argv[1];
@@ -141,7 +156,7 @@ int main(int argc, char *argv[]) {
   InitWindow(scr_width, scr_height, "image color grapher");
   SetTargetFPS(120);
 
-  Texture2D target_image_tex = LoadTextureFromImage(target_image);
+  target_image_tex = LoadTextureFromImage(target_image);
 
   Camera camera = {0};
   camera.position = (Vector3){10.0f, 10.0f, 10.0f}; // Camera position
@@ -185,7 +200,7 @@ int main(int argc, char *argv[]) {
   matInstances.shader = shader;
   printf("making color list\n");
 
-  struct image_info info = process_image(target_image);
+  info = process_image(target_image);
 
   //--------------------------------------------------------------------------------------
 
@@ -197,7 +212,6 @@ int main(int argc, char *argv[]) {
 
   char fileNameToLoad[512] = {0};
 
-  Texture texture = {0};
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
@@ -209,12 +223,8 @@ int main(int argc, char *argv[]) {
         strcpy(fileNameToLoad,
                TextFormat("%s" PATH_SEPERATOR "%s", fileDialogState.dirPathText,
                           fileDialogState.fileNameText));
-        UnloadTexture(texture);
-        texture = LoadTexture(fileNameToLoad);
-        Image loaded_image = LoadImageFromTexture(texture);
-        info = process_image(loaded_image);
-        target_image = loaded_image;
-        target_image_tex = texture;
+
+        UpdateTexturesFromFilename(fileNameToLoad);
       }
 
       fileDialogState.SelectFilePressed = false;

@@ -196,21 +196,44 @@ canvas.emscripten { border: 0px none; background-color: black; }
         };
       };
       function useFileInput(fileInput) {
-          if (fileInput.files.length == 0)
-              return;
+          if (fileInput.files.length === 0) return;
           var file = fileInput.files[0];
+
+          if (!file.type.startsWith("image/")) {
+              console.error("Selected file is not an image.");
+              return;
+          }
 
           var fr = new FileReader();
           fr.onload = function () {
-              var data = new Uint8Array(fr.result);
-              console.log(file.name);
-              Module['FS_createDataFile']('/', file.name, data, true, true, true);
-              Module.ccall('GotFileFromEmscripten', null, ['string'], [file.name]);
+              var img = new Image();
+              img.onload = function () {
+                  var canvas = document.createElement("canvas");
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  var ctx = canvas.getContext("2d");
+                  ctx.drawImage(img, 0, 0);
 
-              fileInput.value = '';
+                  canvas.toBlob(function (blob) {
+                      var reader = new FileReader();
+                      reader.onload = function () {
+                          var data = new Uint8Array(reader.result);
+                          var pngFileName = file.name.replace(/\.[^.]+$/, "") + ".png";
+
+                          console.log("Converted to PNG:", pngFileName);
+                          Module['FS_createDataFile']('/', pngFileName, data, true, true, true);
+                          Module.ccall('GotFileFromEmscripten', null, ['string'], [pngFileName]);
+
+                          fileInput.value = '';
+                      };
+                      reader.readAsArrayBuffer(blob);
+                  }, "image/png");
+              };
+              img.src = fr.result;
           };
-          fr.readAsArrayBuffer(file);
+          fr.readAsDataURL(file);
       }
+
     </script>
 
     <script async type="text/javascript" src="game.js"></script>
