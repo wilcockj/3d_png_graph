@@ -1,4 +1,5 @@
 #include "colorutil.h"
+#include "rlgl.h"
 #include <raylib.h>
 #include <raymath.h>
 #include <stdint.h>
@@ -112,11 +113,9 @@ struct image_info process_image(Image target_image) {
   printf("found %d unique colors\n", info.color_cnt);
 
   info.transform_list = malloc(4 * sizeof(Matrix));
-  for (int i = 0; i < 4; i++) {
-    info.transform_list[i] = malloc(sizeof(Matrix) * info.color_cnt);
-  }
 
   for (int i = 0; i < 4; i++) {
+    info.transform_list[i] = malloc(sizeof(Matrix) * info.color_cnt);
     load_transforms_from_color_list(info.transform_list[i], info.color_list,
                                     info.color_cnt, i);
   }
@@ -207,9 +206,16 @@ int main(int argc, char *argv[]) {
     //----------------------------------------------------------------------------------
     UpdateCamera(&camera, CAMERA_ORBITAL);
 
+    float cameraPos[3] = {camera.position.x, camera.position.y,
+                          camera.position.z};
+    SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos,
+                   SHADER_UNIFORM_VEC3);
+    rlEnableDepthTest();
     // Draw
     //----------------------------------------------------------------------------------
     BeginDrawing();
+
+    rlEnableDepthTest();
 
     ClearBackground(BLACK);
 
@@ -236,7 +242,8 @@ int main(int argc, char *argv[]) {
 
     Draw_Image_In_Region(target_image_tex,
                          (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200});
-    DrawText("Drag and Drop Image", 0, SCREEN_HEIGHT - 20, 20, WHITE);
+    DrawText("Drag and Drop Image Or Upload in Top Left", 0, SCREEN_HEIGHT - 20,
+             20, WHITE);
 
     char *version_string = "v0.1";
     int version_len = MeasureText(version_string, 20);
