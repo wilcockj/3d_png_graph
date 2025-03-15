@@ -14,6 +14,8 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+#define PALETTE_SIZE 8
+
 Image target_image;
 Texture2D target_image_tex;
 struct image_info info;
@@ -99,6 +101,171 @@ void load_transforms_from_color_list(Matrix *transform_list, Color *color_list,
     transform_list[i] = MatrixTranslate(pos.x, pos.y, pos.z);
   }
 }
+typedef enum {
+  RED_WIDEST,
+  GREEN_WIDEST,
+  BLUE_WIDEST,
+  NONE_WIDEST
+} Color_Wideness;
+
+Color_Wideness get_widest_color_in_bucket(Color *color_list,
+                                          size_t color_count) {
+  float red_range[2] = {99999, 0};
+  float green_range[2] = {99999, 0};
+  float blue_range[2] = {99999, 0};
+  for (int i = 0; i < color_count; i++) {
+    Color cur_color = color_list[i];
+    if (cur_color.r < red_range[0]) {
+      red_range[0] = cur_color.r;
+    }
+    if (cur_color.r > red_range[1]) {
+      red_range[1] = cur_color.r;
+    }
+
+    if (cur_color.g < green_range[0]) {
+      green_range[0] = cur_color.g;
+    }
+    if (cur_color.g > green_range[1]) {
+      green_range[1] = cur_color.g;
+    }
+
+    if (cur_color.b < blue_range[0]) {
+      blue_range[0] = cur_color.b;
+    }
+    if (cur_color.b > blue_range[1]) {
+      blue_range[1] = cur_color.b;
+    }
+  }
+  float red_width = red_range[1] - red_range[0];
+  float green_width = green_range[1] - green_range[0];
+  float blue_width = blue_range[1] - blue_range[0];
+
+  if (red_width > green_width && red_width > blue_width && red_width > -90000) {
+    printf("Red is widest at %f\n", red_width);
+    return RED_WIDEST;
+  } else if (green_width > blue_width && green_width > red_width &&
+             green_width > -90000) {
+    printf("Green is widest at %f\n", green_width);
+    return GREEN_WIDEST;
+  } else if (blue_width > -90000) {
+    printf("Blue is widest at %f\n", blue_width);
+    return BLUE_WIDEST;
+  } else {
+    return NONE_WIDEST;
+  }
+}
+
+int red_greater(const void *a, const void *b) {
+  Color color1 = *(const Color *)a;
+  Color color2 = *(const Color *)b;
+
+  if (color1.r > color2.r) {
+    return 1;
+  }
+  if (color2.r > color1.r) {
+    return -1;
+  }
+  return 0;
+}
+
+int green_greater(const void *a, const void *b) {
+  Color color1 = *(const Color *)a;
+  Color color2 = *(const Color *)b;
+
+  if (color1.g > color2.g) {
+    return 1;
+  }
+  if (color2.g > color1.g) {
+    return -1;
+  }
+  return 0;
+}
+
+int blue_greater(const void *a, const void *b) {
+  Color color1 = *(const Color *)a;
+  Color color2 = *(const Color *)b;
+
+  if (color1.b > color2.b) {
+    return 1;
+  }
+  if (color2.b > color1.b) {
+    return -1;
+  }
+  return 0;
+}
+
+Color fetch_average_color(Color *color_list, size_t len) {
+  uint64_t color[3] = {0};
+  for (int i = 0; i < len; i++) {
+    color[0] += color_list[i].r;
+    color[1] += color_list[i].g;
+    color[2] += color_list[i].b;
+  }
+  color[0] /= len;
+  color[1] /= len;
+  color[2] /= len;
+  return (Color){color[0], color[1], color[2]};
+}
+
+size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
+                                   Color *color_list, size_t color_count) {
+  // go through color list,
+  // find largest range color
+  size_t *palette_lens = calloc(palette_size, sizeof(size_t));
+  uint16_t palette_color_idx = 0;
+  bool need_exit_palette_loop = false;
+
+  for (int i = 0; i < palette_size; i++) {
+    Color_Wideness widest_color =
+        get_widest_color_in_bucket(&color_list[0], color_count);
+    // now need to sort by that color
+    switch (widest_color) {
+    case RED_WIDEST:
+      qsort(&color_list[0], color_count, sizeof(Color), red_greater);
+      break;
+
+    case GREEN_WIDEST:
+      qsort(&color_list[0], color_count, sizeof(Color), green_greater);
+      break;
+    case BLUE_WIDEST:
+      qsort(&color_list[0], color_count, sizeof(Color), blue_greater);
+      break;
+    case NONE_WIDEST:
+      need_exit_palette_loop = true;
+      break;
+    }
+
+    if (need_exit_palette_loop) {
+      break;
+    }
+    // need to divide the bucket
+
+    size_t temp_color_count = color_count;
+    color_count = color_count / 2;
+    palette_lens[palette_color_idx++] = temp_color_count - color_count;
+  }
+
+  size_t color_list_idx = 0;
+  size_t pallete_idx = 0;
+  for (int i = palette_size - 1; i > 0; i--) {
+    printf("pallete %d len is %ld\n", i, palette_lens[i]);
+    if (palette_lens[i] < 2) {
+      continue;
+    }
+    palette[pallete_idx++] =
+        fetch_average_color(&color_list[color_list_idx], palette_lens[i]);
+    palette[pallete_idx - 1].a = 255; // make not see through
+    color_list_idx += palette_lens[i];
+  }
+
+  for (int i = 0; i < pallete_idx; i++) {
+    printf("Palette color %d is (%d,%d,%d)\n", i, palette[i].r, palette[i].g,
+           palette[i].b);
+  }
+
+  free(palette_lens);
+  return pallete_idx;
+}
 
 struct image_info process_image(Image target_image) {
 
@@ -106,11 +273,16 @@ struct image_info process_image(Image target_image) {
   info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info.num_pixels = target_image.width * target_image.height;
   info.color_list = malloc(MAX_COLORS * sizeof(Color));
+  info.palette = malloc(PALETTE_SIZE);
 
   info.color_cnt =
       populate_color_list(target_image, info.color_list, info.drawn_pixel_map);
 
+  info.palette_len = gen_palette_from_color_list(
+      &info.palette[0], PALETTE_SIZE, &info.color_list[0], info.color_cnt);
+
   printf("found %d unique colors\n", info.color_cnt);
+  printf("Got a palette length %d\n", info.palette_len);
 
   info.transform_list = malloc(4 * sizeof(Matrix));
 
@@ -244,6 +416,16 @@ int main(int argc, char *argv[]) {
                          (Rectangle){SCREEN_WIDTH - 200, 0, 200, 200});
     DrawText("Drag and Drop Image Or Upload in Top Left", 0, SCREEN_HEIGHT - 20,
              20, WHITE);
+
+    //
+    uint16_t start_x = 0;
+    uint16_t pallete_color_width = 20;
+    uint16_t padding = 2;
+    for (int i = 0; i < info.palette_len; i++) {
+      DrawRectangle(start_x + padding * i, SCREEN_HEIGHT - 60,
+                    pallete_color_width, 20, info.palette[i]);
+      start_x += pallete_color_width;
+    }
 
     char *version_string = "v0.1";
     int version_len = MeasureText(version_string, 20);
