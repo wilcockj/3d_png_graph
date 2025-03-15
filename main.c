@@ -247,15 +247,20 @@ size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
 
   size_t color_list_idx = 0;
   size_t pallete_idx = 0;
-  for (int i = palette_size - 1; i > 0; i--) {
-    printf("pallete %d len is %ld\n", i, palette_lens[i]);
+  for (int i = palette_size - 1; i >= 0; i--) {
+    printf("pallete %d len is %ld, color_list_idx = %ld\n", i, palette_lens[i],
+           color_list_idx);
     if (palette_lens[i] < 2) {
+      color_list = &color_list[palette_lens[i]];
+
       continue;
     }
     palette[pallete_idx++] =
-        fetch_average_color(&color_list[color_list_idx], palette_lens[i]);
+        fetch_average_color(&color_list[0], palette_lens[i]);
     palette[pallete_idx - 1].a = 255; // make not see through
-    color_list_idx += palette_lens[i];
+    printf("made past average colorizing\n");
+    // color_list_idx += palette_lens[i];
+    color_list = &color_list[palette_lens[i]];
   }
 
   for (int i = 0; i < pallete_idx; i++) {
@@ -269,11 +274,11 @@ size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
 
 struct image_info process_image(Image target_image) {
 
-  struct image_info info;
+  struct image_info info = {0};
   info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info.num_pixels = target_image.width * target_image.height;
   info.color_list = malloc(MAX_COLORS * sizeof(Color));
-  info.palette = malloc(PALETTE_SIZE);
+  info.palette = malloc(PALETTE_SIZE * sizeof(Color));
 
   info.color_cnt =
       populate_color_list(target_image, info.color_list, info.drawn_pixel_map);
@@ -421,9 +426,13 @@ int main(int argc, char *argv[]) {
     uint16_t start_x = 0;
     uint16_t pallete_color_width = 20;
     uint16_t padding = 2;
+    DrawRectangle(start_x, SCREEN_HEIGHT - 60 - padding,
+                  padding * info.palette_len +
+                      pallete_color_width * info.palette_len,
+                  pallete_color_width + padding + padding, DARKGRAY);
     for (int i = 0; i < info.palette_len; i++) {
       DrawRectangle(start_x + padding * i, SCREEN_HEIGHT - 60,
-                    pallete_color_width, 20, info.palette[i]);
+                    pallete_color_width, pallete_color_width, info.palette[i]);
       start_x += pallete_color_width;
     }
 

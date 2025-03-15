@@ -1,1 +1,1 @@
-gcc main.c -g3 -lraylib -lm
+gcc main.c -g3 -lraylib -lm -fsanitize=address
