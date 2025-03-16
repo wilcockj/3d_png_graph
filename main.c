@@ -508,24 +508,9 @@ void process_image(struct image_info *info, Image target_image) {
   info->color_cnt = populate_color_list(target_image, info->color_list,
                                         info->drawn_pixel_map);
 
-  // try with color list that is all colors
-
-  //  Color *full_color_list =
-  //     malloc(sizeof(Color) * target_image.width * target_image.height);
-  printf("mallocing image with %d pixels for %d bytes\n",
-         target_image.width * target_image.height,
-         sizeof(Color) * target_image.width * target_image.height);
-
-  // Color *image_colors = LoadImageColors(target_image);
-  //  memcpy(full_color_list, image_colors,
-  // sizeof(Color) * target_image.width * target_image.height);
-  // UnloadImageColors(image_colors);
-
+  // generate the palette from the randomly sampled colors
   info->palette_len = gen_median_palette_from_color_list(
       &info->palette[0], PALETTE_SIZE, &info->color_list[0], info->color_cnt);
-  //&info->palette[0], PALETTE_SIZE, &full_color_list[0],
-  /// target_image.width * target_image.height);
-  // free(full_color_list);
 
   printf("found %d unique colors\n", info->color_cnt);
   printf("Got a palette length %d\n", info->palette_len);
