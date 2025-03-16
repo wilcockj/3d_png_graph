@@ -14,7 +14,7 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-#define PALETTE_SIZE 8
+#define PALETTE_SIZE 16
 
 Image target_image;
 Texture2D target_image_tex;
@@ -281,6 +281,218 @@ size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
   return pallete_idx;
 }
 
+// Calculate luminance value (perceived brightness)
+float calculate_luminance(Color c) {
+  return 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+}
+
+// Compare colors by luminance for sorting
+int luminance_compare(const void *a, const void *b) {
+  Color *c1 = (Color *)a;
+  Color *c2 = (Color *)b;
+
+  float lum1 = calculate_luminance(*c1);
+  float lum2 = calculate_luminance(*c2);
+
+  if (lum1 < lum2)
+    return -1;
+  if (lum1 > lum2)
+    return 1;
+  return 0;
+}
+
+// Sort palette by luminance
+void sort_palette_by_luminance(Color *palette, size_t palette_size) {
+  qsort(palette, palette_size, sizeof(Color), luminance_compare);
+}
+
+size_t gen_median_palette_from_color_list(Color *palette, uint8_t palette_size,
+                                          Color *color_list,
+                                          size_t color_count) {
+  // A bucket represents a subset of colors that we'll split
+  typedef struct {
+    Color *colors;
+    size_t count;
+    Color_Wideness widest_component;
+    uint8_t min_r, min_g, min_b;
+    uint8_t max_r, max_g, max_b;
+  } ColorBucket;
+
+  // Initial bucket containing all colors
+  ColorBucket *buckets = malloc(palette_size * sizeof(ColorBucket));
+  if (!buckets)
+    return 0;
+
+  // Initialize the first bucket with all colors
+  buckets[0].colors = color_list;
+  buckets[0].count = color_count;
+
+  // Find min and max values for the first bucket
+  uint8_t min_r = 255, min_g = 255, min_b = 255;
+  uint8_t max_r = 0, max_g = 0, max_b = 0;
+
+  for (size_t i = 0; i < color_count; i++) {
+    if (color_list[i].r < min_r)
+      min_r = color_list[i].r;
+    if (color_list[i].g < min_g)
+      min_g = color_list[i].g;
+    if (color_list[i].b < min_b)
+      min_b = color_list[i].b;
+
+    if (color_list[i].r > max_r)
+      max_r = color_list[i].r;
+    if (color_list[i].g > max_g)
+      max_g = color_list[i].g;
+    if (color_list[i].b > max_b)
+      max_b = color_list[i].b;
+  }
+
+  buckets[0].min_r = min_r;
+  buckets[0].min_g = min_g;
+  buckets[0].min_b = min_b;
+  buckets[0].max_r = max_r;
+  buckets[0].max_g = max_g;
+  buckets[0].max_b = max_b;
+
+  // Determine the widest color component
+  uint8_t r_range = max_r - min_r;
+  uint8_t g_range = max_g - min_g;
+  uint8_t b_range = max_b - min_b;
+
+  if (r_range >= g_range && r_range >= b_range) {
+    buckets[0].widest_component = RED_WIDEST;
+  } else if (g_range >= r_range && g_range >= b_range) {
+    buckets[0].widest_component = GREEN_WIDEST;
+  } else {
+    buckets[0].widest_component = BLUE_WIDEST;
+  }
+
+  // Number of active buckets
+  size_t bucket_count = 1;
+
+  // Split buckets until we have the desired palette size or can't split anymore
+  while (bucket_count < palette_size) {
+    // Find the bucket with the largest range
+    size_t largest_bucket_idx = 0;
+    uint8_t largest_range = 0;
+
+    for (size_t i = 0; i < bucket_count; i++) {
+      uint8_t range = 0;
+
+      switch (buckets[i].widest_component) {
+      case RED_WIDEST:
+        range = buckets[i].max_r - buckets[i].min_r;
+        break;
+      case GREEN_WIDEST:
+        range = buckets[i].max_g - buckets[i].min_g;
+        break;
+      case BLUE_WIDEST:
+        range = buckets[i].max_b - buckets[i].min_b;
+        break;
+      case NONE_WIDEST:
+        range = 0;
+        break;
+      }
+
+      if (range > largest_range) {
+        largest_range = range;
+        largest_bucket_idx = i;
+      }
+    }
+
+    // If no bucket can be split further, exit
+    if (largest_range <= 1) {
+      break;
+    }
+
+    // Sort the colors in the selected bucket based on the widest component
+    ColorBucket *bucket = &buckets[largest_bucket_idx];
+    switch (bucket->widest_component) {
+    case RED_WIDEST:
+      qsort(bucket->colors, bucket->count, sizeof(Color), red_greater);
+      break;
+    case GREEN_WIDEST:
+      qsort(bucket->colors, bucket->count, sizeof(Color), green_greater);
+      break;
+    case BLUE_WIDEST:
+      qsort(bucket->colors, bucket->count, sizeof(Color), blue_greater);
+      break;
+    case NONE_WIDEST:
+      break; // Should not happen
+    }
+
+    // Split the bucket at the median
+    size_t median = bucket->count / 2;
+
+    // Create a new bucket for the second half
+    buckets[bucket_count].colors = bucket->colors + median;
+    buckets[bucket_count].count = bucket->count - median;
+
+    // Update the first bucket to only contain the first half
+    bucket->count = median;
+
+    // Recalculate min/max values and widest component for both buckets
+    for (size_t b = 0; b < 2; b++) {
+      ColorBucket *current = (b == 0) ? bucket : &buckets[bucket_count];
+
+      min_r = min_g = min_b = 255;
+      max_r = max_g = max_b = 0;
+
+      for (size_t i = 0; i < current->count; i++) {
+        Color *c = &current->colors[i];
+
+        if (c->r < min_r)
+          min_r = c->r;
+        if (c->g < min_g)
+          min_g = c->g;
+        if (c->b < min_b)
+          min_b = c->b;
+
+        if (c->r > max_r)
+          max_r = c->r;
+        if (c->g > max_g)
+          max_g = c->g;
+        if (c->b > max_b)
+          max_b = c->b;
+      }
+
+      current->min_r = min_r;
+      current->min_g = min_g;
+      current->min_b = min_b;
+      current->max_r = max_r;
+      current->max_g = max_g;
+      current->max_b = max_b;
+
+      r_range = max_r - min_r;
+      g_range = max_g - min_g;
+      b_range = max_b - min_b;
+
+      if (r_range >= g_range && r_range >= b_range) {
+        current->widest_component = RED_WIDEST;
+      } else if (g_range >= r_range && g_range >= b_range) {
+        current->widest_component = GREEN_WIDEST;
+      } else {
+        current->widest_component = BLUE_WIDEST;
+      }
+    }
+
+    bucket_count++;
+  }
+
+  // Generate the palette colors by averaging each bucket
+  for (size_t i = 0; i < bucket_count; i++) {
+    Color avg = fetch_average_color(buckets[i].colors, buckets[i].count);
+    avg.a = 255; // Make opaque
+    palette[i] = avg;
+
+    printf("Palette color %zu is (%d,%d,%d)\n", i, avg.r, avg.g, avg.b);
+  }
+
+  sort_palette_by_luminance(palette, bucket_count);
+  free(buckets);
+  return bucket_count;
+}
+
 void process_image(struct image_info *info, Image target_image) {
 
   // struct image_info info = {0};
@@ -296,8 +508,24 @@ void process_image(struct image_info *info, Image target_image) {
   info->color_cnt = populate_color_list(target_image, info->color_list,
                                         info->drawn_pixel_map);
 
-  info->palette_len = gen_palette_from_color_list(
+  // try with color list that is all colors
+
+  //  Color *full_color_list =
+  //     malloc(sizeof(Color) * target_image.width * target_image.height);
+  printf("mallocing image with %d pixels for %d bytes\n",
+         target_image.width * target_image.height,
+         sizeof(Color) * target_image.width * target_image.height);
+
+  // Color *image_colors = LoadImageColors(target_image);
+  //  memcpy(full_color_list, image_colors,
+  // sizeof(Color) * target_image.width * target_image.height);
+  // UnloadImageColors(image_colors);
+
+  info->palette_len = gen_median_palette_from_color_list(
       &info->palette[0], PALETTE_SIZE, &info->color_list[0], info->color_cnt);
+  //&info->palette[0], PALETTE_SIZE, &full_color_list[0],
+  /// target_image.width * target_image.height);
+  // free(full_color_list);
 
   printf("found %d unique colors\n", info->color_cnt);
   printf("Got a palette length %d\n", info->palette_len);
