@@ -21,11 +21,16 @@ Texture2D target_image_tex;
 struct image_info info;
 
 void UpdateTexturesFromFilename(char *filename) {
+  // TODO: add free command
+  for (int i = 0; i < 4; i++) {
+    free(info.transform_list[i]);
+  }
+  free(info.transform_list);
   UnloadTexture(target_image_tex);
   UnloadImage(target_image);
   Texture texture = LoadTexture(filename);
   Image loaded_image = LoadImageFromTexture(texture);
-  info = process_image(loaded_image);
+  process_image(&info, loaded_image);
   target_image = loaded_image;
   target_image_tex = texture;
 }
@@ -140,6 +145,8 @@ Color_Wideness get_widest_color_in_bucket(Color *color_list,
   float green_width = green_range[1] - green_range[0];
   float blue_width = blue_range[1] - blue_range[0];
 
+  printf("red_width = %d, green_width = %d, blue_width = %d\n", red_width,
+         green_width, blue_width);
   if (red_width > green_width && red_width > blue_width && red_width > -90000) {
     printf("Red is widest at %f\n", red_width);
     return RED_WIDEST;
@@ -151,6 +158,7 @@ Color_Wideness get_widest_color_in_bucket(Color *color_list,
     printf("Blue is widest at %f\n", blue_width);
     return BLUE_WIDEST;
   } else {
+    printf("None widest\n");
     return NONE_WIDEST;
   }
 }
@@ -236,6 +244,7 @@ size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
     }
 
     if (need_exit_palette_loop) {
+      printf("Breaking out of pal");
       break;
     }
     // need to divide the bucket
@@ -272,32 +281,40 @@ size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
   return pallete_idx;
 }
 
-struct image_info process_image(Image target_image) {
+void process_image(struct image_info *info, Image target_image) {
 
-  struct image_info info = {0};
-  info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
-  info.num_pixels = target_image.width * target_image.height;
-  info.color_list = malloc(MAX_COLORS * sizeof(Color));
-  info.palette = malloc(PALETTE_SIZE * sizeof(Color));
+  // struct image_info info = {0};
+  //  info.drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 *
+  //  sizeof(uint8_t)));
+  memset(info->drawn_pixel_map, 0, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
+  memset(info->color_list, 0, sizeof(Color) * MAX_COLORS);
+  memset(info->palette, 0, sizeof(Color) * PALETTE_SIZE);
+  info->num_pixels = target_image.width * target_image.height;
+  // info.color_list = malloc(MAX_COLORS * sizeof(Color));
+  // info.palette = malloc(PALETTE_SIZE * sizeof(Color));
 
-  info.color_cnt =
-      populate_color_list(target_image, info.color_list, info.drawn_pixel_map);
+  info->color_cnt = populate_color_list(target_image, info->color_list,
+                                        info->drawn_pixel_map);
 
-  info.palette_len = gen_palette_from_color_list(
-      &info.palette[0], PALETTE_SIZE, &info.color_list[0], info.color_cnt);
+  info->palette_len = gen_palette_from_color_list(
+      &info->palette[0], PALETTE_SIZE, &info->color_list[0], info->color_cnt);
 
-  printf("found %d unique colors\n", info.color_cnt);
-  printf("Got a palette length %d\n", info.palette_len);
+  printf("found %d unique colors\n", info->color_cnt);
+  printf("Got a palette length %d\n", info->palette_len);
 
-  info.transform_list = malloc(4 * sizeof(Matrix));
+  info->transform_list = malloc(4 * sizeof(Matrix));
 
   for (int i = 0; i < 4; i++) {
-    info.transform_list[i] = malloc(sizeof(Matrix) * info.color_cnt);
-    load_transforms_from_color_list(info.transform_list[i], info.color_list,
-                                    info.color_cnt, i);
+    info->transform_list[i] = malloc(sizeof(Matrix) * info->color_cnt);
+    load_transforms_from_color_list(info->transform_list[i], info->color_list,
+                                    info->color_cnt, i);
   }
+}
 
-  return info;
+void init_info(struct image_info *info) {
+  info->drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
+  info->color_list = malloc(MAX_COLORS * sizeof(Color));
+  info->palette = malloc(PALETTE_SIZE * sizeof(Color));
 }
 
 int main(int argc, char *argv[]) {
@@ -325,6 +342,7 @@ int main(int argc, char *argv[]) {
   InitWindow(scr_width, scr_height, "image color grapher");
   SetTargetFPS(120);
 
+  init_info(&info);
   target_image_tex = LoadTextureFromImage(target_image);
 
   Camera camera = {0};
@@ -369,7 +387,7 @@ int main(int argc, char *argv[]) {
   matInstances.shader = shader;
   printf("making color list\n");
 
-  info = process_image(target_image);
+  process_image(&info, target_image);
 
   //--------------------------------------------------------------------------------------
 
@@ -469,14 +487,14 @@ int main(int argc, char *argv[]) {
           free(info.transform_list[i]);
         }
         free(info.transform_list);
-        free(info.color_list);
-        free(info.drawn_pixel_map);
+        // free(info.color_list);
+        // free(info.drawn_pixel_map);
         UnloadImage(target_image);
         UnloadTexture(target_image_tex);
         target_image = test_load;
         target_image_tex = test_texture;
 
-        info = process_image(target_image);
+        process_image(&info, target_image);
         break;
       }
       // tells the engine we handled the files
