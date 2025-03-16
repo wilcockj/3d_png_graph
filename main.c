@@ -668,14 +668,19 @@ int main(int argc, char *argv[]) {
     DrawText("Drag and Drop Image Or Upload in Top Left", 0, SCREEN_HEIGHT - 20,
              20, WHITE);
 
-    //
-    uint16_t start_x = 0;
+    // draw the palette
+    // in the middle of the screen
     uint16_t pallete_color_width = 20;
     uint16_t padding = 2;
+
+    uint16_t start_x =
+        SCREEN_WIDTH / 2 -
+        ((padding + pallete_color_width) * info.palette_len + padding) / 2;
     DrawRectangle(start_x, SCREEN_HEIGHT - 60 - padding,
                   padding * info.palette_len +
-                      pallete_color_width * info.palette_len,
+                      pallete_color_width * info.palette_len + padding,
                   pallete_color_width + padding + padding, DARKGRAY);
+    start_x += padding;
     for (int i = 0; i < info.palette_len; i++) {
       DrawRectangle(start_x + padding * i, SCREEN_HEIGHT - 60,
                     pallete_color_width, pallete_color_width, info.palette[i]);
