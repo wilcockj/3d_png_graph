@@ -661,14 +661,24 @@ int main(int argc, char *argv[]) {
     uint16_t start_x =
         SCREEN_WIDTH / 2 -
         ((padding + pallete_color_width) * info.palette_len + padding) / 2;
-    DrawRectangle(start_x, SCREEN_HEIGHT - 60 - padding,
+    uint16_t color_y = SCREEN_HEIGHT - 60;
+    DrawRectangle(start_x, color_y - padding,
                   padding * info.palette_len +
                       pallete_color_width * info.palette_len + padding,
                   pallete_color_width + padding + padding, DARKGRAY);
     start_x += padding;
     for (int i = 0; i < info.palette_len; i++) {
-      DrawRectangle(start_x + padding * i, SCREEN_HEIGHT - 60,
-                    pallete_color_width, pallete_color_width, info.palette[i]);
+      Rectangle color_rect =
+          (Rectangle){start_x + padding * i, color_y, pallete_color_width,
+                      pallete_color_width};
+      DrawRectangleRec(color_rect, info.palette[i]);
+      if (CheckCollisionPointRec(GetMousePosition(), color_rect)) {
+        //        printf("Got mouse inside of rect with color (%d,%d,%d)\n",
+        //              info.palette[i].r, info.palette[i].g,
+        //              info.palette[i].b);
+        DrawRectangle(start_x + padding * i, color_y - 60, 60, 60,
+                      info.palette[i]);
+      }
       start_x += pallete_color_width;
     }
 
