@@ -1,1 +1,1 @@
-emcc -o webout/game.html main.c -Wall ./libraylib.a -I. -s USE_GLFW=3 -s ASYNCIFY -s ASSERTIONS -s ALLOW_MEMORY_GROWTH -s EXPORTED_RUNTIME_METHODS=['FS','ccall','cwrap'] -sEXPORTED_FUNCTIONS=_GotFileFromEmscripten,_main -I/usr/include/ --preload-file resources/
+emcc -o webout/game.html main.c colors.c -Wall ./libraylib.a -I. -s USE_GLFW=3 -s ASYNCIFY -s ASSERTIONS -s ALLOW_MEMORY_GROWTH -s EXPORTED_RUNTIME_METHODS=['FS','ccall','cwrap'] -sEXPORTED_FUNCTIONS=_GotFileFromEmscripten,_main -I/usr/include/ --preload-file resources/

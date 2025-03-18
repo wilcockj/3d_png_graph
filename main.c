@@ -1,3 +1,4 @@
+#include "colors.h"
 #include "colorutil.h"
 #include "rlgl.h"
 #include <raylib.h>
@@ -14,7 +15,7 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-#define PALETTE_SIZE 16
+#define PALETTE_SIZE 32
 
 Image target_image;
 Texture2D target_image_tex;
@@ -678,6 +679,12 @@ int main(int argc, char *argv[]) {
         //              info.palette[i].b);
         DrawRectangle(start_x + padding * i, color_y - 60, 60, 60,
                       info.palette[i]);
+        const char *color_name = find_closest_color(
+            info.palette[i].r, info.palette[i].g, info.palette[i].b);
+        printf("Closest named color to (%d,%d,%d) = %s\n", info.palette[i].r,
+               info.palette[i].g, info.palette[i].b, color_name);
+        DrawText(color_name, start_x + padding * i, color_y - 80, 12,
+                 info.palette[i]);
       }
       start_x += pallete_color_width;
     }
