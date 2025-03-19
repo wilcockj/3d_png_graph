@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_SAMPLES 100000
 #define MAX_COLORS 40000
@@ -15,7 +16,7 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
-#define PALETTE_SIZE 32
+#define PALETTE_SIZE 16
 
 Image target_image;
 Texture2D target_image_tex;
@@ -656,36 +657,52 @@ int main(int argc, char *argv[]) {
 
     // draw the palette
     // in the middle of the screen
-    uint16_t pallete_color_width = 20;
+    uint16_t pallete_color_width = 40;
     uint16_t padding = 2;
 
     uint16_t start_x =
         SCREEN_WIDTH / 2 -
         ((padding + pallete_color_width) * info.palette_len + padding) / 2;
-    uint16_t color_y = SCREEN_HEIGHT - 60;
+    uint16_t color_y = SCREEN_HEIGHT - 80;
     DrawRectangle(start_x, color_y - padding,
                   padding * info.palette_len +
                       pallete_color_width * info.palette_len + padding,
                   pallete_color_width + padding + padding, DARKGRAY);
     start_x += padding;
     for (int i = 0; i < info.palette_len; i++) {
+      uint32_t cur_x = start_x + padding * i;
       Rectangle color_rect =
-          (Rectangle){start_x + padding * i, color_y, pallete_color_width,
-                      pallete_color_width};
+          (Rectangle){cur_x, color_y, pallete_color_width, pallete_color_width};
       DrawRectangleRec(color_rect, info.palette[i]);
       if (CheckCollisionPointRec(GetMousePosition(), color_rect)) {
         //        printf("Got mouse inside of rect with color (%d,%d,%d)\n",
         //              info.palette[i].r, info.palette[i].g,
         //              info.palette[i].b);
-        DrawRectangle(start_x + padding * i, color_y - 60, 60, 60,
+
+        // Draw backgroundrectangle
+        Color tooltip_background =
+            calculate_luminance(info.palette[i]) > 127 ? DARKGRAY : LIGHTGRAY;
+        DrawRectangle(cur_x - padding, color_y - 100, 100 + padding * 2, 100,
+                      tooltip_background);
+
+        DrawRectangle(start_x + padding * i, color_y - 60 - padding, 60, 60,
                       info.palette[i]);
         const char *color_name = find_closest_color(
             info.palette[i].r, info.palette[i].g, info.palette[i].b);
-        printf("Closest named color to (%d,%d,%d) = %s\n", info.palette[i].r,
-               info.palette[i].g, info.palette[i].b, color_name);
+
+        // printf("Closest named color to (%d,%d,%d) = %s\n", info.palette[i].r,
+        //       info.palette[i].g, info.palette[i].b, color_name);
         DrawText(color_name, start_x + padding * i, color_y - 80, 12,
                  info.palette[i]);
+        if (IsMouseButtonPressed(0)) {
+          char color_buf[20];
+          snprintf(color_buf, 20, "#%x%x%x", info.palette[i].r,
+                   info.palette[i].g, info.palette[i].b);
+          SetClipboardText(color_buf);
+          printf("Mouse button pressed while on color %s\n", color_buf);
+        }
       }
+
       start_x += pallete_color_width;
     }
 
