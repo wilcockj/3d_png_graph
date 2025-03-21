@@ -11,6 +11,7 @@ struct image_info {
   Color *color_list;
   uint8_t *drawn_pixel_map;
   Color *palette;
+  const char **palette_color_names;
   size_t palette_len;
 };
 

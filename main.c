@@ -491,6 +491,7 @@ size_t gen_median_palette_from_color_list(Color *palette, uint8_t palette_size,
   }
 
   sort_palette_by_luminance(palette, bucket_count);
+
   free(buckets);
   return bucket_count;
 }
@@ -503,6 +504,7 @@ void process_image(struct image_info *info, Image target_image) {
   memset(info->drawn_pixel_map, 0, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   memset(info->color_list, 0, sizeof(Color) * MAX_COLORS);
   memset(info->palette, 0, sizeof(Color) * PALETTE_SIZE);
+  memset(info->palette_color_names, 0, sizeof(char *) * PALETTE_SIZE);
   info->num_pixels = target_image.width * target_image.height;
   // info.color_list = malloc(MAX_COLORS * sizeof(Color));
   // info.palette = malloc(PALETTE_SIZE * sizeof(Color));
@@ -513,6 +515,10 @@ void process_image(struct image_info *info, Image target_image) {
   // generate the palette from the randomly sampled colors
   info->palette_len = gen_median_palette_from_color_list(
       &info->palette[0], PALETTE_SIZE, &info->color_list[0], info->color_cnt);
+  for (int i = 0; i < info->palette_len; i++) {
+    info->palette_color_names[i] = find_closest_color(
+        info->palette[i].r, info->palette[i].g, info->palette[i].b);
+  }
 
   printf("found %d unique colors\n", info->color_cnt);
   printf("Got a palette length %d\n", info->palette_len);
@@ -530,6 +536,7 @@ void init_info(struct image_info *info) {
   info->drawn_pixel_map = calloc(1, (256 * 256 * 256) / (8 * sizeof(uint8_t)));
   info->color_list = malloc(MAX_COLORS * sizeof(Color));
   info->palette = malloc(PALETTE_SIZE * sizeof(Color));
+  info->palette_color_names = malloc(PALETTE_SIZE * sizeof(char *));
 }
 
 int main(int argc, char *argv[]) {
@@ -687,8 +694,7 @@ int main(int argc, char *argv[]) {
 
         DrawRectangle(start_x + padding * i, color_y - 60 - padding, 60, 60,
                       info.palette[i]);
-        const char *color_name = find_closest_color(
-            info.palette[i].r, info.palette[i].g, info.palette[i].b);
+        const char *color_name = info.palette_color_names[i];
 
         // printf("Closest named color to (%d,%d,%d) = %s\n", info.palette[i].r,
         //       info.palette[i].g, info.palette[i].b, color_name);
