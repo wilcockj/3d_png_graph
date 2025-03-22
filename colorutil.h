@@ -2,6 +2,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// struct to keep track of particle for notifying
+// on copy
+typedef struct {
+  uint64_t start_time;        // in ms
+  uint64_t particle_lifetime; // in ms
+  Vector2 location;           // current location
+  Vector2 velocity;           // starting velocity
+  bool alive;
+  Color color;
+} particle;
+
 struct image_info {
   size_t color_cnt;
   size_t num_pixels;
@@ -13,6 +24,7 @@ struct image_info {
   Color *palette;
   const char **palette_color_names;
   size_t palette_len;
+  particle copy_particle;
 };
 
 void Draw_Image_In_Region(Texture2D tex, Rectangle region);

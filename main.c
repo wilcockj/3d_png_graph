@@ -9,6 +9,10 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define MAX_SAMPLES 100000
 #define MAX_COLORS 40000
 #define CUBE_SIDE_LEN 0.05f
@@ -537,6 +541,19 @@ void init_info(struct image_info *info) {
   info->color_list = malloc(MAX_COLORS * sizeof(Color));
   info->palette = malloc(PALETTE_SIZE * sizeof(Color));
   info->palette_color_names = malloc(PALETTE_SIZE * sizeof(char *));
+  info->copy_particle = (particle){0};
+}
+
+uint64_t get_current_ms() {
+
+#ifdef __EMSCRIPTEN__
+  uint64_t ms_timestamp = emscripten_get_now();
+#else
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &time);
+  uint64_t ms_timestamp = (time.tv_sec) * 1000 + (time.tv_nsec) / 1000000;
+#endif
+  return ms_timestamp;
 }
 
 int main(int argc, char *argv[]) {
@@ -706,10 +723,61 @@ int main(int argc, char *argv[]) {
                    info.palette[i].g, info.palette[i].b);
           SetClipboardText(color_buf);
           printf("Mouse button pressed while on color %s\n", color_buf);
+          uint64_t ms_timestamp = get_current_ms();
+
+          info.copy_particle = (particle){.start_time = ms_timestamp,
+                                          .particle_lifetime = 1000,
+                                          .location = GetMousePosition(),
+                                          .velocity = (Vector2){0, -2},
+                                          .alive = true,
+                                          .color = WHITE};
         }
       }
 
       start_x += pallete_color_width;
+    }
+
+    if (info.copy_particle.alive) {
+
+      uint64_t ms_timestamp = get_current_ms();
+      printf(
+          "drawing particle particle_lifetime is %llu start_time is %llu, cur "
+          "time "
+          "is %llu\n",
+          info.copy_particle.particle_lifetime, info.copy_particle.start_time,
+          ms_timestamp);
+      if (info.copy_particle.particle_lifetime >
+          ms_timestamp - info.copy_particle.start_time) {
+        // interpolate color alpha
+        float progress = (float)(ms_timestamp - info.copy_particle.start_time) /
+                         info.copy_particle.particle_lifetime;
+        info.copy_particle.color.a =
+            255 - ((-(cosf(PI * progress) - 1) / 2) * 255);
+
+        // need to render and move the particle
+        //            DrawRectangleV(info.copy_particle.location,
+        //            (Vector2){20, 20},
+        //                          info.copy_particle.color);
+        char *particle_text = "Copied color hex code to clipboard";
+
+        // shift so text fits on screen
+        uint16_t particle_right_padding = 20;
+        if (particle_right_padding + MeasureText(particle_text, 24) +
+                info.copy_particle.location.x >
+            SCREEN_WIDTH) {
+          info.copy_particle.location.x -=
+              (MeasureText(particle_text, 24) + info.copy_particle.location.x +
+               particle_right_padding) -
+              SCREEN_WIDTH;
+        }
+        DrawText(particle_text, info.copy_particle.location.x,
+                 info.copy_particle.location.y, 24, info.copy_particle.color);
+        // advance position
+        info.copy_particle.location.x += info.copy_particle.velocity.x;
+        info.copy_particle.location.y += info.copy_particle.velocity.y;
+      } else {
+        info.copy_particle.alive = false;
+      }
     }
 
     char *version_string = "v0.1";
