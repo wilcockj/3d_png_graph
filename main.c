@@ -24,7 +24,7 @@
 
 Image target_image;
 Texture2D target_image_tex;
-struct image_info info;
+struct image_info info = {0};
 
 void UpdateTexturesFromFilename(char *filename) {
   // TODO: add free command
@@ -541,7 +541,6 @@ void init_info(struct image_info *info) {
   info->color_list = malloc(MAX_COLORS * sizeof(Color));
   info->palette = malloc(PALETTE_SIZE * sizeof(Color));
   info->palette_color_names = malloc(PALETTE_SIZE * sizeof(char *));
-  info->copy_particle = (particle){0};
 }
 
 uint64_t get_current_ms() {
@@ -554,6 +553,80 @@ uint64_t get_current_ms() {
   uint64_t ms_timestamp = (time.tv_sec) * 1000 + (time.tv_nsec) / 1000000;
 #endif
   return ms_timestamp;
+}
+
+void Draw_And_Render_Copy_Particles(particle *particles) {
+  // iterate through the particles draw and update locations
+  for (int i = 0; i < NUM_PARTICLES; i++) {
+
+    if (info.copy_particles[i].alive) {
+
+      uint64_t ms_timestamp = get_current_ms();
+      if (info.copy_particles[i].particle_lifetime >
+          ms_timestamp - info.copy_particles[i].start_time) {
+        // interpolate color alpha
+        float progress =
+            (float)(ms_timestamp - info.copy_particles[i].start_time) /
+            info.copy_particles[i].particle_lifetime;
+        info.copy_particles[i].particle_color.a =
+            255 - ((-(cosf(PI * progress) - 1) / 2) * 255);
+
+        // need to render and move the particle
+        //            DrawRectangleV(info.copy_particles[i].location,
+        //            (Vector2){20, 20},
+        //                          info.copy_particles[i].color);
+        char particle_text[50];
+
+        snprintf(particle_text, 49, "Copied %s hex code to clipboard",
+                 info.copy_particles[i].clicked_color_name);
+
+        // shift so text fits on screen
+        uint16_t particle_right_padding = 20;
+        if (particle_right_padding + MeasureText(particle_text, 24) +
+                info.copy_particles[i].location.x >
+            SCREEN_WIDTH) {
+          info.copy_particles[i].location.x -=
+              (MeasureText(particle_text, 24) +
+               info.copy_particles[i].location.x + particle_right_padding) -
+              SCREEN_WIDTH;
+        }
+        DrawText(particle_text, info.copy_particles[i].location.x,
+                 info.copy_particles[i].location.y, 24,
+                 info.copy_particles[i].particle_color);
+        // advance position
+        info.copy_particles[i].location.x += info.copy_particles[i].velocity.x;
+        info.copy_particles[i].location.y += info.copy_particles[i].velocity.y;
+      } else {
+        info.copy_particles[i].alive = false;
+      }
+    }
+  }
+}
+
+void Add_Particle(particle *particles, const particle *new_particle) {
+  uint64_t max_timestamp = UINT64_MAX;
+  int32_t oldest_particle_index = -1;
+  for (int i = 0; i < NUM_PARTICLES; i++) {
+    // find the first that is not alive
+    if (!particles[i].alive) {
+      particles[i] = *new_particle;
+      snprintf(particles[i].text, 49, "Copied %s hex code to clipboard",
+               particles[i].clicked_color_name);
+      return;
+    }
+    if (particles[i].start_time < max_timestamp) {
+      max_timestamp = particles[i].start_time;
+      oldest_particle_index = i;
+    }
+  }
+  // didnt find any that were empty
+  // replace the oldest
+  printf("replacing oldest particle at index %d\n", oldest_particle_index);
+  particles[oldest_particle_index] = *new_particle;
+
+  snprintf(particles[oldest_particle_index].text, 49,
+           "Copied %s hex code to clipboard",
+           particles[oldest_particle_index].clicked_color_name);
 }
 
 int main(int argc, char *argv[]) {
@@ -598,11 +671,7 @@ int main(int argc, char *argv[]) {
   // to reduce number needed
   //
 
-  Mesh my_pyr = GenMeshPoly(4, 1);
-  Mesh my_cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Mesh my_small_sphere = GenMeshSphere(
-      CUBE_SIDE_LEN, 4,
-      8); // GenMeshCube(CUBE_SIDE_LEN, CUBE_SIDE_LEN, CUBE_SIDE_LEN);
+  Mesh my_small_sphere = GenMeshSphere(CUBE_SIDE_LEN, 4, 8);
   Material matIntances = LoadMaterialDefault();
 
   Material matDefault = LoadMaterialDefault();
@@ -717,7 +786,8 @@ int main(int argc, char *argv[]) {
         //       info.palette[i].g, info.palette[i].b, color_name);
         DrawText(color_name, start_x + padding * i, color_y - 80, 12,
                  info.palette[i]);
-        if (IsMouseButtonPressed(0)) {
+        if (IsMouseButtonPressed(0) &&
+            CheckCollisionPointRec(GetMousePosition(), color_rect)) {
           char color_buf[20];
           snprintf(color_buf, 20, "#%x%x%x", info.palette[i].r,
                    info.palette[i].g, info.palette[i].b);
@@ -725,60 +795,27 @@ int main(int argc, char *argv[]) {
           printf("Mouse button pressed while on color %s\n", color_buf);
           uint64_t ms_timestamp = get_current_ms();
 
-          info.copy_particle = (particle){.start_time = ms_timestamp,
-                                          .particle_lifetime = 1000,
-                                          .location = GetMousePosition(),
-                                          .velocity = (Vector2){0, -2},
-                                          .alive = true,
-                                          .color = WHITE};
+          particle new_particle = (particle){.start_time = ms_timestamp,
+                                             .particle_lifetime = 1000,
+                                             .location = GetMousePosition(),
+                                             .velocity = (Vector2){0, -1.5},
+                                             .alive = true,
+                                             .particle_color = WHITE,
+                                             .clicked_color_name = color_name};
+          Add_Particle(&info.copy_particles[0], &new_particle);
         }
       }
 
       start_x += pallete_color_width;
     }
 
-    if (info.copy_particle.alive) {
+    uint16_t cursor_size = 10;
+    DrawRectangleLines(GetMousePosition().x - cursor_size / 2,
+                       GetMousePosition().y - cursor_size / 2, cursor_size,
+                       cursor_size, WHITE);
 
-      uint64_t ms_timestamp = get_current_ms();
-      printf(
-          "drawing particle particle_lifetime is %llu start_time is %llu, cur "
-          "time "
-          "is %llu\n",
-          info.copy_particle.particle_lifetime, info.copy_particle.start_time,
-          ms_timestamp);
-      if (info.copy_particle.particle_lifetime >
-          ms_timestamp - info.copy_particle.start_time) {
-        // interpolate color alpha
-        float progress = (float)(ms_timestamp - info.copy_particle.start_time) /
-                         info.copy_particle.particle_lifetime;
-        info.copy_particle.color.a =
-            255 - ((-(cosf(PI * progress) - 1) / 2) * 255);
-
-        // need to render and move the particle
-        //            DrawRectangleV(info.copy_particle.location,
-        //            (Vector2){20, 20},
-        //                          info.copy_particle.color);
-        char *particle_text = "Copied color hex code to clipboard";
-
-        // shift so text fits on screen
-        uint16_t particle_right_padding = 20;
-        if (particle_right_padding + MeasureText(particle_text, 24) +
-                info.copy_particle.location.x >
-            SCREEN_WIDTH) {
-          info.copy_particle.location.x -=
-              (MeasureText(particle_text, 24) + info.copy_particle.location.x +
-               particle_right_padding) -
-              SCREEN_WIDTH;
-        }
-        DrawText(particle_text, info.copy_particle.location.x,
-                 info.copy_particle.location.y, 24, info.copy_particle.color);
-        // advance position
-        info.copy_particle.location.x += info.copy_particle.velocity.x;
-        info.copy_particle.location.y += info.copy_particle.velocity.y;
-      } else {
-        info.copy_particle.alive = false;
-      }
-    }
+    // handle and render copied code text particle
+    Draw_And_Render_Copy_Particles(&info.copy_particles[0]);
 
     char *version_string = "v0.1";
     int version_len = MeasureText(version_string, 20);
@@ -808,13 +845,10 @@ int main(int argc, char *argv[]) {
           printf("Error unable to load %s\n", files.paths[i]);
           break;
         }
-        // TODO: add free command
         for (int i = 0; i < 4; i++) {
           free(info.transform_list[i]);
         }
         free(info.transform_list);
-        // free(info.color_list);
-        // free(info.drawn_pixel_map);
         UnloadImage(target_image);
         UnloadTexture(target_image_tex);
         target_image = test_load;
@@ -829,5 +863,6 @@ int main(int argc, char *argv[]) {
 
     //----------------------------------------------------------------------------------
   }
+  CloseWindow();
   return EXIT_SUCCESS;
 }
