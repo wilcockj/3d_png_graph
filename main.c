@@ -62,7 +62,8 @@ void Draw_Image_In_Region(Texture2D tex, Rectangle region) {
     dest = (Rectangle){(region.x + region.width - new_width), region.y,
                        new_width, region.height};
   } else {
-    dest = (Rectangle){region.x, 0, region.width, region.height * image_ratio};
+    dest = (Rectangle){region.x, region.y, region.width,
+                       region.height * image_ratio};
   }
 
   DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0, WHITE);
@@ -629,6 +630,45 @@ void Add_Particle(particle *particles, const particle *new_particle) {
            particles[oldest_particle_index].clicked_color_name);
 }
 
+typedef struct {
+  float h; // Hue in degrees [0, 360]
+  float s; // Saturation in percentage [0, 100]
+  float v; // Value in percentage [0, 100]
+} HSV;
+
+HSV rgb_to_hsv(unsigned char r, unsigned char g, unsigned char b) {
+  float rf = r / 255.0f;
+  float gf = g / 255.0f;
+  float bf = b / 255.0f;
+
+  float max = (rf > gf) ? ((rf > bf) ? rf : bf) : ((gf > bf) ? gf : bf);
+  float min = (rf < gf) ? ((rf < bf) ? rf : bf) : ((gf < bf) ? gf : bf);
+  float delta = max - min;
+
+  HSV hsv = {
+      0, 0,
+      max *
+          100}; // Initialize hue to 0, saturation to 0, value to max percentage
+
+  if (delta > 0.00001f) {
+    hsv.s = (max > 0.0f) ? (delta / max) * 100.0f : 0.0f;
+
+    if (max == rf) {
+      hsv.h = 60.0f * (fmodf(((gf - bf) / delta), 6.0f));
+    } else if (max == gf) {
+      hsv.h = 60.0f * (((bf - rf) / delta) + 2.0f);
+    } else { // max == bf
+      hsv.h = 60.0f * (((rf - gf) / delta) + 4.0f);
+    }
+
+    if (hsv.h < 0.0f) {
+      hsv.h += 360.0f;
+    }
+  }
+
+  return hsv;
+}
+
 int main(int argc, char *argv[]) {
   // goal is to load image
   // and graph the color of each pixel
@@ -651,9 +691,12 @@ int main(int argc, char *argv[]) {
     target_image = LoadImage("resources/oceansmall.png");
   }
 
+  Image color_wheel = LoadImage("resources/color_wheel.png");
+
   InitWindow(scr_width, scr_height, "image color grapher");
   SetTargetFPS(120);
 
+  Texture color_wheel_texture = LoadTextureFromImage(color_wheel);
   init_info(&info);
   target_image_tex = LoadTextureFromImage(target_image);
 
@@ -778,13 +821,15 @@ int main(int argc, char *argv[]) {
         DrawRectangle(cur_x - padding, color_y - 100, 100 + padding * 2, 100,
                       tooltip_background);
 
-        DrawRectangle(start_x + padding * i, color_y - 60 - padding, 60, 60,
+        uint16_t x_location_with_padding = start_x + padding * i;
+
+        DrawRectangle(x_location_with_padding, color_y - 60 - padding, 60, 60,
                       info.palette[i]);
         const char *color_name = info.palette_color_names[i];
 
         // printf("Closest named color to (%d,%d,%d) = %s\n", info.palette[i].r,
         //       info.palette[i].g, info.palette[i].b, color_name);
-        DrawText(color_name, start_x + padding * i, color_y - 80, 12,
+        DrawText(color_name, x_location_with_padding, color_y - 80, 12,
                  info.palette[i]);
         if (IsMouseButtonPressed(0) &&
             CheckCollisionPointRec(GetMousePosition(), color_rect)) {
@@ -804,6 +849,35 @@ int main(int argc, char *argv[]) {
                                              .clicked_color_name = color_name};
           Add_Particle(&info.copy_particles[0], &new_particle);
         }
+
+        // draw color_wheel
+        HSV hsv =
+            rgb_to_hsv(info.palette[i].r, info.palette[i].g, info.palette[i].b);
+        uint16_t color_wheel_radius = 50;
+
+        uint16_t color_wheel_y = color_y - 220;
+        Draw_Image_In_Region(color_wheel_texture,
+                             (Rectangle){x_location_with_padding, color_wheel_y,
+                                         color_wheel_radius * 2,
+                                         color_wheel_radius * 2});
+        // find location in color_wheel
+        Vector2 color_wheel_center = {x_location_with_padding +
+                                          color_wheel_radius,
+                                      color_wheel_y + color_wheel_radius};
+        Vector2 hsv_to_cartesian = {
+            color_wheel_radius *
+                (((float)hsv.s / 100) * sinf(hsv.h * (PI / 180))),
+            color_wheel_radius *
+                (((float)hsv.s / 100) * -cosf(hsv.h * (PI / 180)))};
+
+        Vector2 color_location = {color_wheel_center.x + hsv_to_cartesian.x,
+                                  color_wheel_center.y + hsv_to_cartesian.y};
+        uint16_t color_location_radius = 5;
+        DrawCircleLines(color_location.x - (float)color_location_radius / 2,
+                        color_location.y - (float)color_location_radius / 2,
+                        color_location_radius, WHITE);
+
+        // h hue in degrees v will be
       }
 
       start_x += pallete_color_width;
