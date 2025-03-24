@@ -152,7 +152,7 @@ Color_Wideness get_widest_color_in_bucket(Color *color_list,
   float green_width = green_range[1] - green_range[0];
   float blue_width = blue_range[1] - blue_range[0];
 
-  printf("red_width = %d, green_width = %d, blue_width = %d\n", red_width,
+  printf("red_width = %f, green_width = %f, blue_width = %f\n", red_width,
          green_width, blue_width);
   if (red_width > green_width && red_width > blue_width && red_width > -90000) {
     printf("Red is widest at %f\n", red_width);
@@ -525,8 +525,8 @@ void process_image(struct image_info *info, Image target_image) {
         info->palette[i].r, info->palette[i].g, info->palette[i].b);
   }
 
-  printf("found %d unique colors\n", info->color_cnt);
-  printf("Got a palette length %d\n", info->palette_len);
+  printf("found %ld unique colors\n", info->color_cnt);
+  printf("Got a palette length %ld\n", info->palette_len);
 
   info->transform_list = malloc(4 * sizeof(Matrix));
 
@@ -675,8 +675,6 @@ int main(int argc, char *argv[]) {
   // on 3d graph
   const int scr_width = SCREEN_WIDTH;
   const int scr_height = SCREEN_HEIGHT;
-  const float circle_radius = 0.1;
-  const float graph_limit = 5;
   srand(1);
 
   if (argc > 1) {
@@ -708,16 +706,11 @@ int main(int argc, char *argv[]) {
   camera.fovy = 45.0f;             // Camera field-of-view Y
   camera.projection = CAMERA_PERSPECTIVE; // Camera mode type
 
-  Vector3 center = {0, 0, 0};
-
   // maybe instead need to find the unique pixels?
   // to reduce number needed
   //
 
   Mesh my_small_sphere = GenMeshSphere(CUBE_SIDE_LEN, 4, 8);
-  Material matIntances = LoadMaterialDefault();
-
-  Material matDefault = LoadMaterialDefault();
 
   // Load lighting shader
   Shader shader = LoadShader("resources/lighting_instancing_100.vs",
