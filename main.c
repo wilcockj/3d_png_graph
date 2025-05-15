@@ -1,3 +1,4 @@
+#define COLOR_LIB_IMPLEMENTATION
 #include "colors.h"
 #include "colorutil.h"
 #include "rlgl.h"
@@ -222,72 +223,6 @@ Color fetch_average_color(Color *color_list, size_t len) {
   return (Color){color[0], color[1], color[2]};
 }
 
-size_t gen_palette_from_color_list(Color *palette, uint8_t palette_size,
-                                   Color *color_list, size_t color_count) {
-  // go through color list,
-  // find largest range color
-  size_t *palette_lens = calloc(palette_size, sizeof(size_t));
-  uint16_t palette_color_idx = 0;
-  bool need_exit_palette_loop = false;
-
-  for (int i = 0; i < palette_size; i++) {
-    Color_Wideness widest_color =
-        get_widest_color_in_bucket(&color_list[0], color_count);
-    // now need to sort by that color
-    switch (widest_color) {
-    case RED_WIDEST:
-      qsort(&color_list[0], color_count, sizeof(Color), red_greater);
-      break;
-
-    case GREEN_WIDEST:
-      qsort(&color_list[0], color_count, sizeof(Color), green_greater);
-      break;
-    case BLUE_WIDEST:
-      qsort(&color_list[0], color_count, sizeof(Color), blue_greater);
-      break;
-    case NONE_WIDEST:
-      need_exit_palette_loop = true;
-      break;
-    }
-
-    if (need_exit_palette_loop) {
-      printf("Breaking out of pal");
-      break;
-    }
-    // need to divide the bucket
-
-    size_t temp_color_count = color_count;
-    color_count = color_count / 2;
-    palette_lens[palette_color_idx++] = temp_color_count - color_count;
-  }
-
-  size_t color_list_idx = 0;
-  size_t pallete_idx = 0;
-  for (int i = palette_size - 1; i >= 0; i--) {
-    printf("pallete %d len is %ld, color_list_idx = %ld\n", i, palette_lens[i],
-           color_list_idx);
-    if (palette_lens[i] < 2) {
-      color_list = &color_list[palette_lens[i]];
-
-      continue;
-    }
-    palette[pallete_idx++] =
-        fetch_average_color(&color_list[0], palette_lens[i]);
-    palette[pallete_idx - 1].a = 255; // make not see through
-    printf("made past average colorizing\n");
-    // color_list_idx += palette_lens[i];
-    color_list = &color_list[palette_lens[i]];
-  }
-
-  for (int i = 0; i < pallete_idx; i++) {
-    printf("Palette color %d is (%d,%d,%d)\n", i, palette[i].r, palette[i].g,
-           palette[i].b);
-  }
-
-  free(palette_lens);
-  return pallete_idx;
-}
-
 // Calculate luminance value (perceived brightness)
 float calculate_luminance(Color c) {
   return 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
@@ -316,7 +251,6 @@ void sort_palette_by_luminance(Color *palette, size_t palette_size) {
 size_t gen_median_palette_from_color_list(Color *palette, uint8_t palette_size,
                                           Color *color_list,
                                           size_t color_count) {
-  // A bucket represents a subset of colors that we'll split
   typedef struct {
     Color *colors;
     size_t count;
